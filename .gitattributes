@@ -64,3 +64,6 @@
 
 # Patch context lines intentionally contain the unified-diff prefix.
 *.patch whitespace=-blank-at-eol
+
+# Generated reports contain byte offsets; never normalize their line endings.
+*.pdf binary

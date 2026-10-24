@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     neo4j_password: str = Field(default="")
     neo4j_database: str = Field(default="neo4j")
     api_password: str = Field(default="")
+    # Optional local AI settings. Credentials never reach the browser.
+    ai_config: str = Field(default="")
     # v1（V3_PLAN.md §1）：不可变组件内容寻址根目录 + 几何 worker 可执行文件。
     component_root: str = Field(default=str(Path(__file__).resolve().parent.parent / "data" / "components"))
     worker_exe: str = Field(default=str(

@@ -1,0 +1,623 @@
+{
+  "primary_plan": {
+    "created": "2026-10-25T02:21:03.469809",
+    "seed": 202610251,
+    "tasks": [
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1762916477.603793",
+        "modality": "draw-temp",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1764916571.484756",
+        "modality": "draw-static",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1770025470.6041431",
+        "modality": "draw-temp",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": false,
+        "parametric": true
+      },
+      {
+        "_id": "F332D3FXML85WLR2_1770201199.0857742",
+        "modality": "draw-static",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1769174947.8063738",
+        "modality": "text",
+        "difficulty": "easy",
+        "text": "Mirror the part according to the plane lying on the not rounded end of the part. Merge the mirrored part together with the existing one so they create one body.",
+        "assembly": false,
+        "parametric": true
+      },
+      {
+        "_id": "F332D3FXML85WLR2_1769689501.084095",
+        "modality": "draw-temp",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "B7A2N74ZJBF9MZHU_1770171470.1448698",
+        "modality": "text",
+        "difficulty": "easy",
+        "text": "Make the whole frame structure taller by 0,5cm. The area profile remains the same.",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1757604173.826423",
+        "modality": "interactive",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1770026121.912831",
+        "modality": "draw-temp",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": false,
+        "parametric": true
+      },
+      {
+        "_id": "B7A2N74ZJBF9MZHU_1770174308.67968",
+        "modality": "text",
+        "difficulty": "medium",
+        "text": "Add two horizontal buttons to the front panel. One above existing one, the other below - all approximately equally distanced. Buttons should be copies of existing one.",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1764916400.141185",
+        "modality": "draw-static",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1765357677.932269",
+        "modality": "draw-static",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": false,
+        "parametric": true
+      },
+      {
+        "_id": "F332D3FXML85WLR2_1770192409.6794162",
+        "modality": "draw-static",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "ZK22J6VYRKQ2RTFD_1763446942.266676",
+        "modality": "draw-temp",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "B7A2N74ZJBF9MZHU_1770172545.5244548",
+        "modality": "text",
+        "difficulty": "hard",
+        "text": "If edge with bigger radius is considered as top, add supporting structure to the bottom of the frame by offseting inner wall by 2cm with thickness of 0,5cm of the supporting structure all around. This will create step at the bottom of the frame, enlarging bottom surface area. Leave out radii at the bottom edges. Add radii from top, 0,2cm which will create smoothe transition from above. Bottom remains flat.",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "ZK22J6VYRKQ2RTFD_1758276358.147559",
+        "modality": "interactive",
+        "difficulty": "hard",
+        "text": "",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1762933245.4024708",
+        "modality": "draw-temp",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "SUJ2G2UMJQR7PMBX_1764924274.913125",
+        "modality": "draw-static",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "4S7JQK6ZQMAD25GL_1758863286.214549",
+        "modality": "text",
+        "difficulty": "medium",
+        "text": "Add two click buttons with the height of 2 millimetre to provide a comfortable and responsive feel for the user",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1769160823.975014",
+        "modality": "interactive",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": false,
+        "parametric": true
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1769163374.6983628",
+        "modality": "interactive",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": true,
+        "parametric": true
+      },
+      {
+        "_id": "B7A2N74ZJBF9MZHU_1770174519.556716",
+        "modality": "text",
+        "difficulty": "hard",
+        "text": "Add rectangular openining to the lower back of the coffee machine, which might serve as draft location for plug and main ON/OFF switch. Opening should be 20cm x 10cm and 3cm deep rectangle with roundend corners (radius 1cm). Position should be more or less equally distanced from bottom and sides of the device.",
+        "assembly": true,
+        "parametric": false
+      },
+      {
+        "_id": "3YH2WFSRM22W7DKT_1769172994.532475",
+        "modality": "interactive",
+        "difficulty": "medium",
+        "text": "",
+        "assembly": false,
+        "parametric": false
+      },
+      {
+        "_id": "F332D3FXML85WLR2_1769445723.059108",
+        "modality": "interactive",
+        "difficulty": "easy",
+        "text": "",
+        "assembly": false,
+        "parametric": true
+      }
+    ],
+    "arms": [
+      "neuralcad",
+      "agentic",
+      "itercad"
+    ],
+    "model": "Qwen3.6-27B",
+    "max_iters": 6,
+    "max_tokens": 4096,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "thinking": true,
+    "fps": 0.5,
+    "budget_cny": 100,
+    "generation_stop_cny": 83,
+    "episode_soft_stop_cny": 99,
+    "model_weight_revision": "provider alias, unverified",
+    "commits": {
+      "neuralcad": "68d1acceda0743e364f45fb7823f7cf39c530ba5",
+      "agentic": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+      "itercad": "55998c4a4537573f67ca241dedc52ee2840652ca"
+    },
+    "adaptations": [
+      "IterCAD-Edit imports input STEP through a minimal original program",
+      "IterCAD receives the same request video/transcript as other methods",
+      "IterCAD pass@1, no ground-truth-based best-of-K or GT feedback",
+      "Common max model calls and output tokens; shared API provider",
+      "Monetary stops are retained as budget-censored outcomes",
+      "Baseline forwards input STEP to original script via original run_cadquery_script input_file parameter; no prompt/algorithm/geometry feedback changes",
+      "Six model calls max, 4096 visible output tokens, for normal last-state export within shared remaining budget",
+      "Calibration outcomes retained separately, never mixed into primary rankings; no task inclusion by success/failure"
+    ],
+    "primary_outcome": "Blinded VLM acceptance proxy gated by valid positive-volume solids",
+    "secondary": [
+      "original CD / surface-voxel IoU / DINO",
+      "no-op and solid defects",
+      "cost",
+      "paired uncertainty"
+    ],
+    "no_human_acceptance_claim": true,
+    "primary_protocol_revision": 2,
+    "calibration_run": "round1-20261025-020005",
+    "primary_rank": "strict solid-gated blinded single-Qwen VLM acceptance proxy; tie-break AUC nCD tolerance recall; uncertainty reported"
+  },
+  "amendments": {
+    "allocation-amendment.json": {
+      "timestamp": 1792867158.960522,
+      "old_generation_soft_stop": 83,
+      "new_generation_soft_stop": 92,
+      "reason": "Observed grader cost is lower than reserved allocation; retain CNY8 for outstanding evaluation, preserve all uncertain charges, hard shared cap remains100",
+      "applies_to": "New episode processes; already started processes retain their captured plan",
+      "no_outcome_reruns": true
+    },
+    "pacing-amendment.json": {
+      "timestamp": 1792867092.094662,
+      "cause": "Provider HTTP429 dynamic ramp throttling, despite configured RPM/TPM limits",
+      "change": "New transports share a two-second request admission interval; inference prompts/model/call caps unchanged; no automatic retries",
+      "prior_errors_retained": true
+    }
+  },
+  "calibration": {
+    "run": "round1-20261025-020005",
+    "plan": {
+      "created": "2026-10-25T02:00:05.146348",
+      "seed": 20261025,
+      "tasks": [
+        {
+          "_id": "ZK22J6VYRKQ2RTFD_1763446942.266676",
+          "modality": "draw-temp",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769449157.652246",
+          "modality": "interactive",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "3YH2WFSRM22W7DKT_1770128507.230718",
+          "modality": "draw-static",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "4E22SJE7QVTSP2E3_1757516773.773709",
+          "modality": "interactive",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769680760.448561",
+          "modality": "draw-temp",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769681083.793268",
+          "modality": "draw-temp",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "VTJ2PH38JVUV6GY6_1762235622.041999",
+          "modality": "draw-temp",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1770214403.557566",
+          "modality": "draw-static",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1764916400.141185",
+          "modality": "draw-static",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "3YH2WFSRM22W7DKT_1769773134.1453462",
+          "modality": "text",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": true,
+          "text": "Add bigger amount of cylindrical holes into the red platforms to decrease their weights. Amount of patterns can be chosen by editor."
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1757677320.163158",
+          "modality": "interactive",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "4S7JQK6ZQMAD25GL_1758863286.214549",
+          "modality": "text",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": true,
+          "text": "Add two click buttons with the height of 2 millimetre to provide a comfortable and responsive feel for the user"
+        },
+        {
+          "_id": "ZK22J6VYRKQ2RTFD_1757417412.98706",
+          "modality": "interactive",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "B7A2N74ZJBF9MZHU_1770163193.896746",
+          "modality": "interactive",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "4S7JQK6ZQMAD25GL_1758863403.376244",
+          "modality": "text",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": true,
+          "text": "Add a sliding switch on the bottom to provide a convenient on and off function"
+        },
+        {
+          "_id": "3YH2WFSRM22W7DKT_1769783385.069543",
+          "modality": "text",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": false,
+          "text": "Remove the collision between handle and cofeepot."
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769686542.1320288",
+          "modality": "draw-temp",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "B7A2N74ZJBF9MZHU_1770237874.737652",
+          "modality": "interactive",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "B7A2N74ZJBF9MZHU_1770166308.11235",
+          "modality": "text",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": true,
+          "text": "If this is a spanner, the main cutout is too deep which is weakening the tool. Make the cutout shallower by 10mm, but keep the \"size\" of the spanner the same - meaning the parallel surfaces remain 20mm apart."
+        },
+        {
+          "_id": "ZK22J6VYRKQ2RTFD_1763115818.853083",
+          "modality": "draw-temp",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "EHM2HMQDME2U85QB_1764832728.304262",
+          "modality": "draw-static",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "ZK22J6VYRKQ2RTFD_1763115933.97503",
+          "modality": "draw-temp",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1762917569.766948",
+          "modality": "draw-temp",
+          "difficulty": "hard",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1770208398.300075",
+          "modality": "text",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": true,
+          "text": "Let's make this part symmetric. There is a step on one of the sides of the whistle. Move the protruding surface so that it is level with the surface next to it. Delete all chamfers and radii and new ones following rules: Horizontal edges in the area where the narrow and bigger part of the whistle meet have a radius R=20mm. Other edges have R=5mm applied to them"
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1759209917.917027",
+          "modality": "text",
+          "difficulty": "easy",
+          "assembly": true,
+          "parametric": false,
+          "text": "Hi , Please remove the fillet at the front center and add a 1 millimeter chamfer instead"
+        },
+        {
+          "_id": "ZK22J6VYRKQ2RTFD_1765020506.876121",
+          "modality": "draw-static",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1764924685.888205",
+          "modality": "draw-static",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769448996.056297",
+          "modality": "interactive",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1757603819.6229792",
+          "modality": "interactive",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1770206307.074256",
+          "modality": "text",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": false,
+          "text": "Scale the part 10x. Add drafts of 2 degrees to all vertical surfaces, with flat bottom surface as a hinge. Add rounds R=1mm to all inner edges and R=3mm to all outer edges. Exclude edges, inner or outer, on the flat bottom surface. Add two cylinder features with D=6mm and inner hole D=3mm. Cylinders should be spaced 30mm apart and shall be placed centered with respect to the main part. They should start on the flat bottom surface level and reach all the way to the part wall on the top side"
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1770197834.660595",
+          "modality": "draw-static",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "SUJ2G2UMJQR7PMBX_1762917361.727008",
+          "modality": "draw-temp",
+          "difficulty": "medium",
+          "assembly": true,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "3YH2WFSRM22W7DKT_1770128389.014625",
+          "modality": "draw-static",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": false,
+          "text": NaN
+        },
+        {
+          "_id": "B7A2N74ZJBF9MZHU_1770312252.404008",
+          "modality": "draw-static",
+          "difficulty": "hard",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "F332D3FXML85WLR2_1769445723.059108",
+          "modality": "interactive",
+          "difficulty": "easy",
+          "assembly": false,
+          "parametric": true,
+          "text": NaN
+        },
+        {
+          "_id": "3YH2WFSRM22W7DKT_1769177020.525719",
+          "modality": "text",
+          "difficulty": "medium",
+          "assembly": false,
+          "parametric": false,
+          "text": "Add several cutouts into the part to decrease its weight."
+        }
+      ],
+      "arms": [
+        "neuralcad",
+        "agentic",
+        "itercad"
+      ],
+      "model": "Qwen3.6-27B",
+      "max_iters": 40,
+      "max_tokens": 8192,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "thinking": true,
+      "fps": 0.5,
+      "budget_cny": 100,
+      "generation_stop_cny": 83,
+      "episode_soft_stop_cny": 2.0,
+      "model_weight_revision": "provider alias, unverified",
+      "commits": {
+        "neuralcad": "68d1acceda0743e364f45fb7823f7cf39c530ba5",
+        "agentic": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+        "itercad": "55998c4a4537573f67ca241dedc52ee2840652ca"
+      },
+      "adaptations": [
+        "IterCAD-Edit imports input STEP through a minimal original program",
+        "IterCAD receives the same request video/transcript as other methods",
+        "IterCAD pass@1, no ground-truth-based best-of-K or GT feedback",
+        "Common max model calls and output tokens; shared API provider",
+        "Monetary stops are retained as budget-censored outcomes"
+      ],
+      "primary_outcome": "Blinded VLM acceptance proxy gated by valid positive-volume solids",
+      "secondary": [
+        "original CD / surface-voxel IoU / DINO",
+        "no-op and solid defects",
+        "cost",
+        "paired uncertainty"
+      ],
+      "no_human_acceptance_claim": true
+    },
+    "outcomes": {
+      "interrupted_calibration": 9,
+      "no_output": 9,
+      "budget_stop": 5,
+      "exported": 6,
+      "error": 2
+    }
+  },
+  "observation_plan": {
+    "registered": 1792866583.981421,
+    "seed": 202610252,
+    "model": "Qwen3.6-27B",
+    "contexts": 3,
+    "edits": [
+      "scale_origin_2x",
+      "translate_x12"
+    ],
+    "outcomes": [
+      "correct",
+      "noop"
+    ],
+    "channels": [
+      "autofit",
+      "locked",
+      "numeric"
+    ],
+    "judgments": 36,
+    "max_new_spend_cny": 2,
+    "hypothesis": "Auto-fit can erase absolute scale/position changes; shared camera or exact measurements recover evidence.",
+    "main_benchmark_separate": true,
+    "no_editor_model_calls": true,
+    "not_an_end_to_end_ablation": true
+  }
+}

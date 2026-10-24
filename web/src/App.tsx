@@ -1,3 +1,4 @@
+import { AIPanel } from "./AIPanel";
 import { Sidebar } from "./Sidebar";
 import { Properties, Toolbar } from "./Properties";
 import { Viewer } from "./Viewer";
@@ -24,6 +25,12 @@ export default function App() {
     }
   };
   useEffect(() => { void connect(); }, []);
+  useEffect(() => {
+    if (connected) {
+      const id = new URLSearchParams(location.search).get("project");
+      if (id) void useViewer.getState().openProject(id);
+    }
+  }, [connected]);
   const activeProject = useViewer((s) => s.activeProject);
   const scene = useViewer((s) => s.scene);
   const error = useViewer((s) => s.error);
@@ -39,7 +46,7 @@ export default function App() {
         setApiPassword(password);
         void connect();
       }}>
-        <h1>DB-CAD</h1>
+        <h1>InferraCAD</h1>
         <label>访问密码<input type="password" autoComplete="current-password" value={password}
           onChange={(event) => setPassword(event.target.value)} /></label>
         {loginError && <p role="alert">{loginError}</p>}
@@ -51,7 +58,7 @@ export default function App() {
   return (
     <div className="app" data-measure={measureCount}>
       <header className="header">
-        <span className="brand">DB-CAD</span>
+        <span className="brand">InferraCAD</span>
         <span className="project">
           {activeProject ? `${activeProject.name}${scene ? ` · v${scene.version}` : ""}` : "未打开项目"}
         </span>
@@ -72,7 +79,7 @@ export default function App() {
           <Toolbar />
           <Viewer />
         </div>
-        <Properties />
+        <aside className="right-panels"><AIPanel /><Properties /></aside>
       </div>
     </div>
   );

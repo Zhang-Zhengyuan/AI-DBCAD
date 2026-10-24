@@ -237,12 +237,12 @@ function CameraRig({ center, radius }: { center: [number, number, number]; radiu
 }
 
 export function Viewer() {
-  const scene = useViewer((s) => s.scene);
+  const scene = useViewer((s) => s.aiPreview ?? s.scene);
   const select = useViewer((s) => s.select);
 
   const bounds = useMemo(() => {
     if (!scene || scene.components.length === 0)
-      return { center: [0, 0, 0] as [number, number, number], radius: 10 };
+      return { center: [0, 0, 0] as [number, number, number], radius: 10, floorZ: 0 };
     const box = new THREE.Box3();
     for (const component of scene.components) {
       box.union(
@@ -257,6 +257,7 @@ export function Viewer() {
     return {
       center: [center.x, center.y, center.z] as [number, number, number],
       radius: Math.max(size.length() / 2, 1),
+      floorZ: box.min.z - 0.02,
     };
   }, [scene]);
 
@@ -284,7 +285,7 @@ export function Viewer() {
       <MeasureOverlay />
       <CameraRig center={bounds.center} radius={bounds.radius} />
       <OrbitControls makeDefault />
-      <gridHelper args={[200, 40, 0x3a4148, 0x262b30]} position={[0, 0, 0]} />
+      <gridHelper args={[200, 40, 0x3a4148, 0x262b30]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, bounds.floorZ]} />
     </Canvas>
   );
 }

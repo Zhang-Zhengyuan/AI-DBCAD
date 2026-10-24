@@ -83,6 +83,11 @@ def test_contract_paths_are_frozen():
     spec = TestClient(main.app).get("/openapi.json").json()
     paths = set(spec["paths"])
     expected = {
+        "/api/v1/ai/status",
+        "/api/v1/projects/{project_id}/ai/jobs",
+        "/api/v1/projects/{project_id}/ai/jobs/{job_id}",
+        "/api/v1/projects/{project_id}/ai/jobs/{job_id}/cancel",
+        "/api/v1/projects/{project_id}/ai/jobs/{job_id}/apply",
         "/api/v1/projects",
         "/api/v1/projects/{project_id}",
         "/api/v1/projects/{project_id}/versions",

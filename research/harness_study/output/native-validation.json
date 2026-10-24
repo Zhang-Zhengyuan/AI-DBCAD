@@ -1,0 +1,61 @@
+{
+  "smoke": {
+    "preview_preserved_head": true,
+    "applied_version": 2,
+    "undo_restored_input": true,
+    "redo_restored_edit": true
+  },
+  "model": "Qwen3.6-27B",
+  "smoke_model_calls": 5,
+  "smoke_cost_cny": 0.07807800000000001,
+  "browser_edit": {
+    "status": "applied",
+    "version": 5,
+    "calls": 4,
+    "estimated_cny": 0.05065800000000001
+  },
+  "geometry": {
+    "kernel": "ACIS native commands/export",
+    "independent_STL_audit": true,
+    "watertight": true,
+    "volume_mesh": 18299.807831928403,
+    "expected_volume_analytic": 18295.22131576614,
+    "relative_volume_error": 0.00025069476247940615,
+    "bbox_extents": [
+      60.0,
+      40.0,
+      8.0
+    ],
+    "genus": 1,
+    "exact_acis_circle_boundaries": [
+      {
+        "radius": 6.0,
+        "center": [
+          10.0,
+          0.0,
+          -4.0
+        ]
+      },
+      {
+        "radius": 6.0,
+        "center": [
+          10.0,
+          0.0,
+          4.0
+        ]
+      }
+    ],
+    "current_bbox": {
+      "min": [
+        -20.0,
+        -20.0,
+        -4.0
+      ],
+      "max": [
+        40.0,
+        20.0,
+        4.0
+      ]
+    }
+  }
+}
