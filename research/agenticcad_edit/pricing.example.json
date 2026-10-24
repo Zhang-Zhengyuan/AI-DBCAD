@@ -1,0 +1,7 @@
+{
+  "model": "Qwen3.6-27B",
+  "input_cny_per_million": 3.0,
+  "output_cny_per_million": 18.0,
+  "context_tokens": 262144,
+  "source": "Paratera console screenshot supplied by the user, 2026-10-25; verify before future runs"
+}
