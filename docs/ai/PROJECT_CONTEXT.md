@@ -4,6 +4,8 @@
 
 AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 DBCAD 底座。
 
+后续研究统一在本 InferraCAD 仓库进行。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
+
 Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `DBCAD.command`。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
 
 ## 运行链路（v3 服务端权威）
