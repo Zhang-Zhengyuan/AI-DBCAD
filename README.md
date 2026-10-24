@@ -8,6 +8,8 @@
 
 完整步骤见 [复现与部署指南](docs/GETTING_STARTED.md)。worker 构建需要授权 ACIS SDK 与配套依赖；源码不包含 SDK。依赖布局见 [依赖说明](docs/DEPENDENCIES.md)；SDK 已迁移到官方 ACIS 2026.1.0.1（纯公有 API，无定制头文件），编译契约与行为差异见 [ACIS 2026 迁移指南](docs/ACIS_2026_MIGRATION.md)。
 
+Apple Silicon Mac 原生构建与启停见 [macOS 运行指南](docs/MACOS.md)。首次运行 `python3 scripts/macos.py setup --team-kit /path/to/DBCAD-Team-Kit.zip`，之后双击根目录 `DBCAD.command`。
+
 准备依赖和本机配置后，在仓库根目录执行：
 
 ```powershell

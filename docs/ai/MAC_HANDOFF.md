@@ -10,8 +10,8 @@ Zhang Zhengyuan 从 DBCAD（数据库 CAD 存储）转向 AI-native CAD 研究�
 
 - 仓库：[Zhang-Zhengyuan/inferraCAD](https://github.com/Zhang-Zhengyuan/inferraCAD)，私有；Mac 建议使用 `~/THU_Things/inferraCAD`，后续研究都在此开展。
 - Mac：M5、24 GB 统一内存、macOS 26、约 500 GB 空闲磁盘。
-- DBCAD 底座为 React + FastAPI + Neo4j + C++ ACIS worker。本阶段不移植 worker；现有 Windows EXE/DLL 不能直接在 Mac 原生运行。
-- 后端通过本机子进程、管道和文件调用 worker，不能直接填远程地址。需要联调时，建议保留 Windows 后端与 worker，Mac 通过 HTTP 使用；benchmark 实验独立运行。
+- DBCAD 底座为 React + FastAPI + Neo4j + C++ ACIS worker。维护者在 2026-10-24 提供了 ACIS/InterOp 2026.1.0.1 Mac ARM64 SDK，并明确将当前优先事项调整为先运行 Mac 原生 DBCAD 底座，关联 [Issue #4](https://github.com/Zhang-Zhengyuan/inferraCAD/issues/4)。
+- Mac 构建与启停入口、实际验证和剩余覆盖范围见 [macOS 运行指南](../MACOS.md)。后端仍通过本机子进程、管道和文件调用原生 worker，协议和存储架构保持不变。
 - 先读仓库 `AGENTS.md` 和 [项目地图](PROJECT_CONTEXT.md)，遵守 Issue、分支、PR 流程。
 
 ## 当前进度
@@ -22,6 +22,8 @@ Zhang Zhengyuan 从 DBCAD（数据库 CAD 存储）转向 AI-native CAD 研究�
 - 用户已暂停 Windows 配置工作。完整数据未下载，环境未安装，尚无运行验证或复现成绩。
 
 ## Mac 上下一步
+
+先确认 [Mac 底座](../MACOS.md) 可用，再继续下述 Issue #2 的研究复现。底座适配不意味着 neuralCAD-Edit 已复现，也不自动开始付费 API 实验。
 
 1. 拉取任务分支，重新克隆并固定官方代码。阅读论文及 `src/scripts_benchmark_inference/run_harness.py`、`src/vlms/base_vlm.py`、`src/harnesses/cadquery_script.py` 和 `src/utils/evals_feature_geometric.py`。官方同时提供 benchmark 和 CadQuery 迭代编辑 harness。
 2. 建立原生 ARM64 独立环境，参考官方 Python 3.12 配置；下载数据、配置路径、锁定依赖。不要复制 Windows 虚拟环境。
