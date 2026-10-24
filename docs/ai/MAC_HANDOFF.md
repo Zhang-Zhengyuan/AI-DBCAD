@@ -8,7 +8,7 @@ Zhang Zhengyuan 从 DBCAD（数据库 CAD 存储）转向 AI-native CAD 研究�
 
 ## 工作区与迁移边界
 
-- 仓库：[Zhang-Zhengyuan/inferraCAD](https://github.com/Zhang-Zhengyuan/inferraCAD)，私有；Mac 建议使用 `~/THU_Things/inferraCAD`，后续研究都在此开展。
+- 仓库：[Zhang-Zhengyuan/inferraCAD](https://github.com/Zhang-Zhengyuan/inferraCAD)，私有；维护者已明确后续研究统一使用当前 InferraCAD 工作区，研究文件放在本仓库 `research/`。
 - Mac：M5、24 GB 统一内存、macOS 26、约 500 GB 空闲磁盘。
 - DBCAD 底座为 React + FastAPI + Neo4j + C++ ACIS worker。维护者在 2026-10-24 提供了 ACIS/InterOp 2026.1.0.1 Mac ARM64 SDK，并明确将当前优先事项调整为先运行 Mac 原生 DBCAD 底座，关联 [Issue #4](https://github.com/Zhang-Zhengyuan/inferraCAD/issues/4)。
 - Mac 构建与启停入口、实际验证和剩余覆盖范围见 [macOS 运行指南](../MACOS.md)。后端仍通过本机子进程、管道和文件调用原生 worker，协议和存储架构保持不变。
@@ -16,18 +16,13 @@ Zhang Zhengyuan 从 DBCAD（数据库 CAD 存储）转向 AI-native CAD 研究�
 
 ## 当前进度
 
-- 任务：[Issue #2](https://github.com/Zhang-Zhengyuan/inferraCAD/issues/2)，分支 `chore/2-setup-neuralcad-edit`。
-- Windows 已在 `research/neuralcad_edit/.local/upstream` 克隆[官方代码](https://github.com/AutodeskAILab/neuralCAD-Edit)，提交 `68d1acceda0743e364f45fb7823f7cf39c530ba5`；该目录被 Git 忽略，Mac 需要重新克隆。
+- 接手文档的 Issue #2 已关闭；Mac 环境与离线复现续作关联 [Issue #6](https://github.com/Zhang-Zhengyuan/inferraCAD/issues/6)。
+- Mac 已在 `research/neuralcad_edit/.local/upstream` 克隆[官方代码](https://github.com/AutodeskAILab/neuralCAD-Edit)，固定提交 `68d1acceda0743e364f45fb7823f7cf39c530ba5`，保持未修改。
 - [官方论文](https://arxiv.org/abs/2604.16170)；[官方数据](https://huggingface.co/datasets/autodesk/neuralCAD-Edit)，压缩约 6 GB、解压约 13 GB。
-- 用户已暂停 Windows 配置工作。完整数据未下载，环境未安装，尚无运行验证或复现成绩。
+- 完整数据已下载并校验；ARM64 环境、真实样本 STEP/七视图/视频/自动指标、DINO 重提取及发布评分汇总已验证。入口与实际边界见 [研究 README](../../research/neuralcad_edit/README.md) 和 [验收记录](../../research/neuralcad_edit/VALIDATION.md)。未运行付费模型或新的人工评价。
 
 ## Mac 上下一步
 
-先确认 [Mac 底座](../MACOS.md) 可用，再继续下述 Issue #2 的研究复现。底座适配不意味着 neuralCAD-Edit 已复现，也不自动开始付费 API 实验。
-
-1. 拉取任务分支，重新克隆并固定官方代码。阅读论文及 `src/scripts_benchmark_inference/run_harness.py`、`src/vlms/base_vlm.py`、`src/harnesses/cadquery_script.py` 和 `src/utils/evals_feature_geometric.py`。官方同时提供 benchmark 和 CadQuery 迭代编辑 harness。
-2. 建立原生 ARM64 独立环境，参考官方 Python 3.12 配置；下载数据、配置路径、锁定依赖。不要复制 Windows 虚拟环境。
-3. 用官方小样本验证：数据读取 → STEP 导入 → harness 执行/导出 → 七视图渲染 → 自动评分，然后准备模型 API 单任务运行命令。
-4. 交付中文阅读指南、运行命令和实测结果，再讨论后续实验。小样本跑通不等于论文全量复现；自动指标不能替代人工 Acceptance。
+先使用 [论文与代码阅读指南](../../research/neuralcad_edit/PAPER_AND_CODE.md) 和 `reading.ipynb` 研究真实样本与官方实现。用户本轮要求先完成研究准备，研究清楚后再开展实验；目前仅准备了默认不执行的单任务 API 运行计划。新的模型调用、方法开发和全量付费实验留待下一步明确安排。
 
 环境、数据、缓存、结果放在研究目录的 `.local/` 内；凭据仅存本机。只提交脚本、依赖锁和说明。暂不开发新方法或运行全量付费实验。
