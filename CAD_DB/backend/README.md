@@ -34,6 +34,8 @@ uv run --frozen uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 worker（`x64/<Configuration>/dbcad_worker.exe`）由 FastAPI 的 GeometryPool 按项目自动拉起，一个项目一个进程；路径由环境变量配置。全栈部署使用 `CAD_DB/deploy/start_dbcad_fullstack.cmd`。
 
+macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_DB_WORKER_EXE` 覆盖。Mac 原生环境使用根目录 `DBCAD.command` 启动，详见 [macOS 指南](../../docs/MACOS.md)。
+
 ## 协议（/api/v1）
 
 | 路径 | 功能 |

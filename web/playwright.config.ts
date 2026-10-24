@@ -14,8 +14,7 @@ export default defineConfig({
   },
   webServer: {
     env: { CAD_DB_API_PASSWORD: "dbcad-e2e-access", CAD_DB_NEO4J_URI: "" },
-    command: "..\\..\\web\\scripts\\e2e-server.cmd",
-    cwd: "../CAD_DB/backend",
+    command: "node scripts/e2e-server.cjs",
     url: "http://127.0.0.1:8765/health",
     reuseExistingServer: false,
     timeout: 30_000,

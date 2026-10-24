@@ -109,3 +109,11 @@ research/neuralcad_edit/.local/
 
 # v1 组件内容寻址资产库（后端本地数据，不入库）
 CAD_DB/backend/data/
+
+# macOS SDKs, license material and native build/runtime state
+2026.*_mac_m64/
+/spatial_license.h
+/.local/
+/build/
+web/test-results/
+web/playwright-report/

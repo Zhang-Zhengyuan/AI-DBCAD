@@ -2,6 +2,8 @@
 
 记录执行目录、命令、退出状态、结果摘要和未运行原因。历史验证记录不是本次证据；无服务测试不等于全栈验收。不修改公共/真实模型库来制造测试环境。
 
+macOS 原生构建、Debug/Release 自检和跨平台浏览器测试命令见 [macOS 指南](../MACOS.md#编译与验证)。真实 worker 测试使用 `app.config.settings.worker_exe`，支持 `CAD_DB_WORKER_EXE`；STEP 样本支持 `CAD_DB_STEP_FIXTURE`。
+
 | 改动 | 最低验证 | 额外验收 |
 |---|---|---|
 | 文档、agent 入口、模板 | `git diff --check`、相对链接/命令路径核对 | 确认事实与当前代码一致 |

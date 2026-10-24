@@ -1,17 +1,19 @@
 """P9 STEP 导入集成测试：真 InterOp + 真 worker，abc 语料抽样模型。
 
 链路：上传 STEP → worker InterOp 转换 → 组件（SAT/GLB/graph）→ 版本 1 →
-实体投影。前提：abc_cache 语料与 dbcad_worker.exe 存在，否则 skip。
+实体投影。前提：CAD_DB_STEP_FIXTURE 或 abc_cache 语料与原生 worker 存在，否则 skip。
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app import main
+from app.config import settings
 from app.component_store import ComponentStore, set_component_store
 from app.v1_store import initialize_v1_store, shutdown_v1_store
 from app.worker_client import set_worker_gateway
@@ -19,8 +21,7 @@ from app.worker_pool import set_worker_pool
 
 pytestmark = pytest.mark.integration
 
-_REPO = Path(__file__).resolve().parents[3]
-WORKER = _REPO / "x64" / "Debug" / "dbcad_worker.exe"
+WORKER = Path(settings.worker_exe)
 ABC = Path("D:/DBCAD/abc_cache/extracted")
 
 
@@ -41,6 +42,11 @@ def client(tmp_path: Path):
 
 
 def _first_step() -> Path | None:
+    if fixture := os.environ.get("CAD_DB_STEP_FIXTURE"):
+        path = Path(fixture)
+        if not path.is_file():
+            pytest.fail(f"CAD_DB_STEP_FIXTURE does not exist: {path}")
+        return path
     if not ABC.exists():
         return None
     return next(ABC.rglob("*.step"), None)
