@@ -36,6 +36,7 @@ ResumaCAD 研究共享 CAD 项目经历人工编辑、需求更新和暂停/恢�
 
 - 已配置的 Mac：在 **ResumaCAD** 目录双击 `DBCAD.command`，或运行 `python3 scripts/macos.py start --open`。迁移后的兼容路径规则见 [macOS 指南](docs/MACOS.md#工作区更名与兼容路径)。
 - 研究与复现：从上表的研究 README 开始；未配置提供方时先做离线检查，不需要模型 API Key。
+- 开题汇报准备：[选题覆盖与价值复核（2026-10-26）](docs/research/NOVELTY_AUDIT_20261026.md)、[12 页内容与讲解底稿](docs/research/PROPOSAL_SLIDES.md)、[四套视觉预览](output/slides/previews/README.md)；最终 PPT 待选定风格后制作。
 - 代码导航与后续 agent 接手：[项目地图](docs/ai/PROJECT_CONTEXT.md) · [Mac 接手说明](docs/ai/MAC_HANDOFF.md)。
 - 仓库：[Zhang-Zhengyuan/ResumaCAD](https://github.com/Zhang-Zhengyuan/ResumaCAD)。
 

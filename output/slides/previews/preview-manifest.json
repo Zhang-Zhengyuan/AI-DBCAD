@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-26",
+  "status": "awaiting_style_selection",
+  "requested_model": "gpt-image-2.5-flare",
+  "generator": "image-generation-bridge",
+  "request_size": "1536x1024",
+  "slides_per_board": 12,
+  "grid": "3 columns x 4 rows",
+  "final_deck_target": {
+    "slides": 12,
+    "aspect_ratio": "16:9",
+    "render_pixels": [
+      1920,
+      1080
+    ],
+    "created": false
+  },
+  "usage_or_cost": null,
+  "notes": [
+    "Generated boards are visual style previews, not measured results or final editable slides.",
+    "Source text and literature labels were reviewed. Final slide text and geometry illustrations require editable re-layout.",
+    "Model request alias is recorded; provider backend identity is not independently attested."
+  ],
+  "files": [
+    {
+      "file": "style-a-navy-cyan.png",
+      "pixels": [
+        1536,
+        1024
+      ],
+      "bytes": 1791505,
+      "sha256": "f868050dcff3db89697e38b283034238ebfe0f98a37b0731e7d7afdff8d3e03f"
+    },
+    {
+      "file": "style-b-pine-sand.png",
+      "pixels": [
+        1536,
+        1024
+      ],
+      "bytes": 1839549,
+      "sha256": "7b452b1f71734ed9b0108c1ed9ebdd92184f8b13e92dfbd9884c88afeb38e3c8"
+    },
+    {
+      "file": "style-c-indigo-lilac.png",
+      "pixels": [
+        1536,
+        1024
+      ],
+      "bytes": 1852314,
+      "sha256": "e7c3d2076d81b5680cb6540b50981713a26a60b4b2de17817f70fb3cbcafbfd4"
+    },
+    {
+      "file": "style-d-graphite-amber.png",
+      "pixels": [
+        1536,
+        1024
+      ],
+      "bytes": 1839238,
+      "sha256": "346b086cb62bb6a54fa03c08120b641a4dcbf8e98742bb8a087aa1c0cdc781e2"
+    }
+  ]
+}

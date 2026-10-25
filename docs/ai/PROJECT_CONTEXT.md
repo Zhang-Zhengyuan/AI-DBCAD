@@ -10,6 +10,8 @@ AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API
 
 原生 AI 编辑与三 harness 对照研究入口：[research/harness_study/README.md](../../research/harness_study/README.md)。AI 路由与隔离预览循环位于 `CAD_DB/backend/app/api/v1/ai.py`、`app/ai_editor.py`，浏览器面板为 `web/src/AIPanel.tsx`；费用控制模块 `app/ai_budget.py` 与研究 API 共用。
 
+开题汇报准备（2026-10-26）：[选题覆盖与科研价值复核](../research/NOVELTY_AUDIT_20261026.md)、[12 页内容与讲解底稿](../research/PROPOSAL_SLIDES.md)、[四套风格预览](../../output/slides/previews/README.md)。通用 agent memory 的方法先例与 CAD 课题直接覆盖应分开判断；几何证据有效性仍是待验证的研究假设。图像预览只供选择风格，最终 PPT 需维护者选定风格后再制作。
+
 Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `DBCAD.command`。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
 
 ## 运行链路（v3 服务端权威）
