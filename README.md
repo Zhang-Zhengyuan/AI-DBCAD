@@ -4,6 +4,8 @@
 
 *Version-Aware Geometric Evidence for Reliable Continuation in Human–AI CAD Editing*
 
+[中文选题报告 PDF](output/pdf/resumacad-research-proposal.pdf) · [可编辑源稿与参考文献](docs/research/RESEARCH_PROPOSAL.md)
+
 ResumaCAD 研究共享 CAD 项目经历人工编辑、需求更新和暂停/恢复后，AI 如何识别仍然有效的几何证据、重新获取失效观测，并以可控成本正确继续设计。名称取意于 **resume**，项目原名 InferraCAD；几何与协作底座沿用 **DBCAD**。
 
 ## 研究问题与边界

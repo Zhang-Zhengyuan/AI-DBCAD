@@ -4,6 +4,8 @@
 
 AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 DBCAD 底座。
 
+已确定课题的详细定义、相关工作、benchmark/方法计划、实验和阶段目标见[选题报告源稿](../research/RESEARCH_PROPOSAL.md)及 [PDF](../../output/pdf/resumacad-research-proposal.pdf)。报告明确区分已完成基础和待验证假设。
+
 后续研究统一在本 ResumaCAD 仓库进行。维护者已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”，拟研究独立的持续编辑 benchmark 和证据维护方法，目前未实现或验证；当前定位以[根 README](../../README.md) 为准。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
 
 AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API 对照入口见 [research/agenticcad_edit/README.md](../../research/agenticcad_edit/README.md)，原实现局限和评分口径见其 [PAPER_AND_CODE.md](../../research/agenticcad_edit/PAPER_AND_CODE.md)。

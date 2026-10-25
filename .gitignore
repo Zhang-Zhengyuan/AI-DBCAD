@@ -121,3 +121,6 @@ web/test-results/
 web/playwright-report/
 
 /test-results/
+
+# PDF authoring previews; final reports live in output/pdf/
+/tmp/pdfs/
