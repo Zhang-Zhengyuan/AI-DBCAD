@@ -171,6 +171,16 @@ class GeometryPool:
             self._collect(project_id, result)
             return result
 
+    async def release(self, project_id: str) -> None:
+        """Release an isolated preview session without touching other projects."""
+        import shutil
+        async with self._lock(project_id):
+            session = self._sessions.pop(project_id, None)
+            if session is not None:
+                await session.process.stop()
+                shutil.rmtree(session.spool, ignore_errors=True)
+        self._locks.pop(project_id, None)
+
     def _collect(self, project_id: str, result: dict) -> None:
         """把 worker 发射的组件文件搬进内容寻址组件库（含实体图投影）。"""
         assets = get_component_store()

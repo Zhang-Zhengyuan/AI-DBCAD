@@ -15,6 +15,8 @@ interface ViewerState {
   versions: VersionInfo[];
   tags: { name: string; version: number }[];
   scene: Scene | null;
+  aiPreview: Scene | null;
+  setAIPreview: (scene: Scene | null) => void;
   sceneCache: Map<number, Scene>;
   selected: string[]; // 首个为主选（gizmo 目标）；布尔取前两个
   displayMode: DisplayMode;
@@ -94,6 +96,8 @@ export const useViewer = create<ViewerState>((set, get) => {
     versions: [],
     tags: [],
     scene: null,
+    aiPreview: null,
+    setAIPreview: (scene) => set({ aiPreview: scene, selected: [], gizmoMode: "off" }),
     sceneCache: new Map(),
     selected: [],
     displayMode: "shadedEdges",
@@ -123,6 +127,7 @@ export const useViewer = create<ViewerState>((set, get) => {
         loading: true,
         sceneCache: new Map(),
         scene: null,
+        aiPreview: null,
         selected: [],
         versions: [],
         tags: [],
@@ -142,6 +147,7 @@ export const useViewer = create<ViewerState>((set, get) => {
     },
 
     showVersion: async (version) => {
+      set({ aiPreview: null, gizmoMode: "off" });
       const project = get().activeProject;
       if (!project) return;
       const wanted = version ?? project.head_version;
@@ -187,6 +193,7 @@ export const useViewer = create<ViewerState>((set, get) => {
       set((state) => ({ viewRequest: { view, nonce: (state.viewRequest?.nonce ?? 0) + 1 } })),
 
     runCommand: async (payload) => {
+      if (get().aiPreview) { set({error: "请先应用或放弃 AI 预览"}); return false; }
       const project = get().activeProject;
       if (!project) return false;
       const currentHead = project.head_version;
@@ -207,6 +214,7 @@ export const useViewer = create<ViewerState>((set, get) => {
     },
 
     undo: async () => {
+      if (get().aiPreview) return;
       const project = get().activeProject;
       if (!project) return;
       try {
@@ -217,6 +225,7 @@ export const useViewer = create<ViewerState>((set, get) => {
       }
     },
     redo: async () => {
+      if (get().aiPreview) return;
       const project = get().activeProject;
       if (!project) return;
       try {
@@ -236,7 +245,7 @@ export const useViewer = create<ViewerState>((set, get) => {
 
     closeProject: () => {
       get().ws?.close();
-      set({ activeProject: null, scene: null, versions: [], tags: [], ws: null, presence: [], intents: {} });
+      set({ activeProject: null, aiPreview: null, scene: null, versions: [], tags: [], ws: null, presence: [], intents: {} });
     },
   };
 });

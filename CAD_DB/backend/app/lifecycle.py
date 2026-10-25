@@ -48,5 +48,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        from .ai_editor import shutdown as shutdown_ai
+        from .worker_pool import get_worker_pool
+        await shutdown_ai()
+        await get_worker_pool().shutdown()
         shutdown_v1_store()
         neo4j_webui._close_driver()

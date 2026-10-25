@@ -82,6 +82,7 @@ def environment(data):
     return {
         **os.environ,
         "CAD_DB_WORKER_EXE": str(WORKER),
+        "CAD_DB_AI_CONFIG": os.environ.get("CAD_DB_AI_CONFIG", str(LOCAL / "ai.json") if (LOCAL / "ai.json").exists() else ""),
         "CAD_DB_COMPONENT_ROOT": str(LOCAL / "components"),
         "CAD_DB_API_PASSWORD": data["api_password"],
         "CAD_DB_NEO4J_URI": f"bolt://127.0.0.1:{data['ports']['bolt']}",

@@ -41,13 +41,13 @@ export function Toolbar() {
   const runCommand = useViewer((s) => s.runCommand);
   const undo = useViewer((s) => s.undo);
   const redo = useViewer((s) => s.redo);
-  const active = useViewer((s) => !!s.activeProject);
+  const active = useViewer((s) => !!s.activeProject && !s.aiPreview);
   const measureMode = useViewer((s) => s.measureMode);
   const setMeasureMode = useViewer((s) => s.setMeasureMode);
   const clearMeasure = useViewer((s) => s.clearMeasure);
   const section = useViewer((s) => s.section);
   const setSection = useViewer((s) => s.setSection);
-  const scene = useViewer((s) => s.scene);
+  const scene = useViewer((s) => s.aiPreview ?? s.scene);
   const openProject = useViewer((s) => s.openProject);
   const fileInput = useRef<HTMLInputElement>(null);
   const projectId = useViewer((s) => s.activeProject?.id ?? null);
@@ -222,7 +222,7 @@ export function Toolbar() {
 }
 
 export function Properties() {
-  const scene = useViewer((s) => s.scene);
+  const scene = useViewer((s) => s.aiPreview ?? s.scene);
   const selectedIds = useViewer((s) => s.selected);
   const intents = useViewer((s) => s.intents);
   const component =

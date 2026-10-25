@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "cadquery==2.6.1",
   "mcp>=1.26,<2",
+  "trimesh>=4.12,<5",
   "httpx>=0.28,<1",
   "mongita==1.2.0",
   "numpy>=1.26,<3",

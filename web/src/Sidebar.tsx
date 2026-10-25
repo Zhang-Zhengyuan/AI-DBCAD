@@ -15,6 +15,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function InsertForm() {
   const active = useViewer((s) => s.activeProject);
+  const preview = useViewer((s) => s.aiPreview);
   const runCommand = useViewer((s) => s.runCommand);
   const [schemas, setSchemas] = useState<CommandSchemas | null>(null);
   const [kind, setKind] = useState("cube");
@@ -29,6 +30,7 @@ function InsertForm() {
   }, []);
 
   if (!active) return null;
+  if (preview) return <Section title="建模"><p className="empty">请先应用或放弃 AI 预览</p></Section>;
   const create = schemas?.commands["component.create"];
   const params = create?.params ?? {};
   const numericFields = Object.entries(params).filter(
@@ -105,7 +107,8 @@ export function Sidebar() {
   const activeProject = useViewer((s) => s.activeProject);
   const versions = useViewer((s) => s.versions);
   const tags = useViewer((s) => s.tags);
-  const scene = useViewer((s) => s.scene);
+  const scene = useViewer((s) => s.aiPreview ?? s.scene);
+  const preview = useViewer((s) => s.aiPreview);
   const selected = useViewer((s) => s.selected);
   const intents = useViewer((s) => s.intents);
   const loadProjects = useViewer((s) => s.loadProjects);
@@ -184,7 +187,7 @@ export function Sidebar() {
       )}
 
       {scene && (
-        <Section title={`组件 · v${scene.version}（Ctrl+点多选）`}>
+        <Section title={`组件 · ${preview ? "AI 预览" : `v${scene.version}`}（Ctrl+点多选）`}>
           <ul className="component-list">
             {scene.components.map((component) => {
               const editor = Object.entries(intents).find(

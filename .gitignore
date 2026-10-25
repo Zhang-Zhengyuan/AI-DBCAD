@@ -107,6 +107,7 @@ scripts/tests/acis/*.obj
 # Isolated AI-CAD research: upstream checkouts, datasets, environments and results
 research/neuralcad_edit/.local/
 research/agenticcad_edit/.local/
+research/harness_study/.local/
 
 # v1 组件内容寻址资产库（后端本地数据，不入库）
 CAD_DB/backend/data/
@@ -118,3 +119,5 @@ CAD_DB/backend/data/
 /build/
 web/test-results/
 web/playwright-report/
+
+/test-results/

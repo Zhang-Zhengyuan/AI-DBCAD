@@ -153,3 +153,20 @@ body {
   font-size: 12px; font-family: Consolas, monospace; white-space: nowrap;
   border: 1px solid #3d5a80;
 }
+
+.right-panels { width: 330px; flex-shrink: 0; background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; }
+.right-panels .properties { width: auto; border-left: none; border-top: 1px solid var(--border); overflow: visible; }
+.ai-panel { padding: 15px; font-size: 12px; line-height: 1.6; }
+.ai-heading { display: flex; align-items: center; justify-content: space-between; }
+.ai-heading h2 { font-size: 17px; margin: 0; color: #b4d4ff; }
+.ai-heading span, .ai-model, .ai-hint { color: var(--text-dim); font-size: 11px; }
+.ai-panel textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 9px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.ai-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-actions button { border: 1px solid var(--border); border-radius: 5px; background: var(--panel-2); color: var(--text); padding: 6px 10px; cursor: pointer; }
+.ai-actions .primary { background: #2b4a75; color: #deebff; border-color: #3d5a80; }
+.ai-actions button:disabled { opacity: .45; cursor: default; }
+.ai-preview-note { background: #22352f; border: 1px solid #365b4c; border-radius: 6px; margin: 12px 0; padding: 10px; }
+.ai-trace { margin-top: 12px; }
+.ai-trace ol { padding-left: 20px; }
+.ai-trace pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 10px/1.5 monospace; max-height: 160px; overflow: auto; }
+.ai-error { color: #ffb0b0; overflow-wrap: anywhere; }
