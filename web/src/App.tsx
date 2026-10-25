@@ -46,7 +46,7 @@ export default function App() {
         setApiPassword(password);
         void connect();
       }}>
-        <h1>InferraCAD</h1>
+        <h1>ResumaCAD</h1>
         <label>访问密码<input type="password" autoComplete="current-password" value={password}
           onChange={(event) => setPassword(event.target.value)} /></label>
         {loginError && <p role="alert">{loginError}</p>}
@@ -58,7 +58,7 @@ export default function App() {
   return (
     <div className="app" data-measure={measureCount}>
       <header className="header">
-        <span className="brand">InferraCAD</span>
+        <span className="brand">ResumaCAD</span>
         <span className="project">
           {activeProject ? `${activeProject.name}${scene ? ` · v${scene.version}` : ""}` : "未打开项目"}
         </span>

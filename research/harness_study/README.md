@@ -1,6 +1,6 @@
 # 三 harness 研究与原生 AI 编辑
 
-所有操作从 InferraCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。主报告为 [REPORT.md](REPORT.md)，可阅读 PDF 在 `output/inferracad-study-report.pdf`，逐例指标在 `output/episodes.csv`；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。
+所有操作从 ResumaCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。主报告为 [REPORT.md](REPORT.md)，可阅读 PDF 在 `output/inferracad-study-report.pdf`，逐例指标在 `output/episodes.csv`；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。历史报告保留当时的 InferraCAD 名称，当前选题与实现状态以[根 README](../../README.md)为准。
 
 ## 环境与第三方代码
 
