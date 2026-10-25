@@ -1,6 +1,7 @@
 """Lifecycle regression checks without Docker or access to development data."""
 import argparse
 import importlib.util
+import json
 import os
 from pathlib import Path
 import signal
@@ -48,6 +49,56 @@ class LauncherTests(unittest.TestCase):
                 self.assertGreater(len(first["api_password"]), 32)
                 self.assertNotEqual(first["api_password"], first["neo4j_password"])
                 self.assertEqual((local / "settings.json").stat().st_mode & 0o777, 0o600)
+
+    def test_renamed_workspace_reuses_config_through_original_alias(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = Path(directory) / "old-workspace"
+            original.mkdir()
+            local = original / ".local/macos"
+            with patch.multiple(launcher, ROOT=original, LOCAL=local, SETTINGS=local / "settings.json"):
+                before = launcher.config()
+            renamed = Path(directory) / "new-workspace"
+            original.rename(renamed)
+            original.symlink_to(renamed.name, target_is_directory=True)
+            local = renamed / ".local/macos"
+            with patch.multiple(launcher, ROOT=renamed, LOCAL=local, SETTINGS=local / "settings.json"):
+                self.assertEqual(before, launcher.config())
+                self.assertEqual((local / "settings.json").stat().st_mode & 0o777, 0o600)
+
+    def test_copied_config_cannot_adopt_another_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = Path(directory) / "original"
+            copied = Path(directory) / "copied"
+            original.mkdir()
+            copied.mkdir()
+            local = original / ".local/macos"
+            with patch.multiple(launcher, ROOT=original, LOCAL=local, SETTINGS=local / "settings.json"):
+                before = launcher.config()
+            local = copied / ".local/macos"
+            launcher.save(local / "settings.json", before)
+            with patch.multiple(launcher, ROOT=copied, LOCAL=local, SETTINGS=local / "settings.json"):
+                with self.assertRaisesRegex(RuntimeError, "Workspace moved"):
+                    launcher.config()
+
+    def test_container_alias_is_accepted_but_foreign_or_missing_label_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "new-workspace"
+            alias = Path(directory) / "old-workspace"
+            foreign = Path(directory) / "other-workspace"
+            root.mkdir()
+            foreign.mkdir()
+            alias.symlink_to(root.name, target_is_directory=True)
+            for label in (str(root), str(alias), str(foreign), "", None):
+                with self.subTest(label=label), patch.object(launcher, "ROOT", root):
+                    labels = {} if label is None else {launcher.LABEL: label}
+                    info = {"Config": {"Labels": labels}, "State": {"Running": True}}
+                    result = subprocess.CompletedProcess([], 0, json.dumps([info]), "")
+                    with patch.object(launcher.subprocess, "run", return_value=result):
+                        if label in (str(root), str(alias)):
+                            self.assertEqual(launcher.container_info({"container": "test-container"}), info)
+                        else:
+                            with self.assertRaisesRegex(RuntimeError, "another workspace"):
+                                launcher.container_info({"container": "test-container"})
 
     def test_stale_identity_preserves_process_and_owned_identity_stops_it(self):
         with tempfile.TemporaryDirectory() as directory:

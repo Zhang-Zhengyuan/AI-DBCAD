@@ -25,6 +25,7 @@ WORKER = ROOT / "build" / "macos" / "Release" / "dbcad_worker"
 SETTINGS = LOCAL / "settings.json"
 STATE = LOCAL / "processes.json"
 IMAGE = "neo4j:5.26.12-community"
+# Persistent container identity: retain the legacy label across project renames.
 LABEL = "org.inferracad.workspace"
 
 
@@ -55,10 +56,20 @@ def free_port(preferred, excluded=()):
     raise RuntimeError(f"No available port near {preferred}")
 
 
+def same_workspace(path):
+    """Accept an existing absolute alias, never a different checkout or missing label."""
+    if not isinstance(path, str) or not path or not Path(path).is_absolute():
+        return False
+    try:
+        return Path(path).resolve(strict=True).samefile(ROOT)
+    except (OSError, RuntimeError):
+        return False
+
+
 def config():
     if SETTINGS.exists():
         data = json.loads(SETTINGS.read_text())
-        if data["root"] != str(ROOT):
+        if not same_workspace(data["root"]):
             raise RuntimeError("Workspace moved; stop the original instance before migrating its local configuration.")
         return data
     LOCAL.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -68,7 +79,7 @@ def config():
         ports[key] = free_port(preferred, ports.values())
     data = {
         "root": str(ROOT),
-        "container": "inferracad-" + hashlib.sha256(str(ROOT).encode()).hexdigest()[:10],
+        "container": "resumacad-" + hashlib.sha256(str(ROOT).encode()).hexdigest()[:10],
         "image": IMAGE,
         "ports": ports,
         "api_password": secrets.token_urlsafe(32),
@@ -119,7 +130,7 @@ def container_info(data):
     if result.returncode:
         return None
     info = json.loads(result.stdout)[0]
-    if info["Config"].get("Labels", {}).get(LABEL) != str(ROOT):
+    if not same_workspace(info["Config"].get("Labels", {}).get(LABEL)):
         raise RuntimeError("Container name belongs to another workspace; refusing to change it.")
     return info
 
@@ -235,7 +246,7 @@ def start(args):
         raise RuntimeError(f"Backend did not become ready. Inspect {LOCAL / 'backend.log'}")
     spawn("gateway", [shutil.which("node"), ROOT / "scripts/macos-gateway.cjs"], data, records)
     url = f"http://127.0.0.1:{data['ports']['web']}/web/"
-    print(f"DBCAD: {url}")
+    print(f"ResumaCAD: {url}")
     print(f"Local logs and saved configuration: {LOCAL}")
     if args.open:
         run("open", url)

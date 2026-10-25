@@ -67,7 +67,7 @@ export function AIPanel() {
   };
   const running = job?.status === "running";
   return <section className="ai-panel" aria-label="AI CAD 编辑">
-    <div className="ai-heading"><h2>AI CAD</h2><span>InferraCAD</span></div>
+    <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
     <p className="ai-model">{status?.enabled ? status.model : "AI 尚未配置"}</p>
     <p>用自然语言创建或修改模型。支持图元、移动、缩放和布尔运算。</p>
     <label htmlFor="ai-instruction">编辑要求</label>

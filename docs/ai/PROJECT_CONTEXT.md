@@ -1,10 +1,10 @@
 # 项目上下文与按需导航
 
-核对日期：2026-10-19（v3.2）。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
+核对日期：2026-10-25。科研项目现名 ResumaCAD，底座沿用 DBCAD v3。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
 
 AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 DBCAD 底座。
 
-后续研究统一在本 InferraCAD 仓库进行。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
+后续研究统一在本 ResumaCAD 仓库进行。维护者已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”，拟研究独立的持续编辑 benchmark 和证据维护方法，目前未实现或验证；当前定位以[根 README](../../README.md) 为准。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
 
 AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API 对照入口见 [research/agenticcad_edit/README.md](../../research/agenticcad_edit/README.md)，原实现局限和评分口径见其 [PAPER_AND_CODE.md](../../research/agenticcad_edit/PAPER_AND_CODE.md)。
 
