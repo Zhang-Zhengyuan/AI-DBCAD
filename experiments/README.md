@@ -3,7 +3,7 @@
 每个科学实验有稳定 ID；一次执行另有 run ID。底座在 `systems/dbcad/`，既有复现与 harness 在 `research/`，这里负责关联问题、协议、代码、结果和原始记录位置。
 
 - [EXP-001 · 三 harness 初步对照](exp-001-three-harness/README.md)：已有 24 请求 × 3 方法运行及后验审计；登记既有成果，不代表新运行。它没有测持续人机编辑的证据失效。
-- [EXP-002 · 跨版本证据失效预实验](exp-002-evidence-validity/README.md)：**仅计划，尚未运行**。先检查现有系统在外部修改后是否实际误用旧证据，再决定方法投入。
+- [EXP-002 · 跨版本证据失效预实验](exp-002-evidence-validity/README.md)：已完成 24 个受控恢复分支，观察到明确旧数值误用案例；N/F/A 最终验收 5/8、8/8、8/8。不是自然长期链或候选方法验证。
 
 ```bash
 python3 scripts/experiments.py list

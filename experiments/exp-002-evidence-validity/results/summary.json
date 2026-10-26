@@ -1,0 +1,69 @@
+{
+  "experiment_id": "EXP-002",
+  "run_id": "20261026-agentic-v1-s20261026",
+  "assigned": 24,
+  "attempted": 24,
+  "primary_status": {
+    "finished": 24
+  },
+  "budget": {
+    "limit_cny": 100.0,
+    "calls": 194,
+    "accounted_cny": 5.207439,
+    "completed_estimate_cny": 5.207439,
+    "unknown_calls": 0
+  },
+  "by_policy": {
+    "N": {
+      "assigned": 8,
+      "geometry_success": 5,
+      "full_success": 5,
+      "unknown_labels": 0,
+      "unsafe_final": 3,
+      "trials_with_unsafe_boundary": 4,
+      "stale_evidence_errors": 1,
+      "calls": 50,
+      "prompt_tokens": 300002,
+      "completion_tokens": 15541,
+      "accounted_cny": 1.1797440000000001,
+      "agent_tools": 42,
+      "prefetch_tools": 0,
+      "mean_elapsed_s": 90.04800779187644,
+      "prefetch_s": 0
+    },
+    "F": {
+      "assigned": 8,
+      "geometry_success": 8,
+      "full_success": 8,
+      "unknown_labels": 0,
+      "unsafe_final": 0,
+      "trials_with_unsafe_boundary": 0,
+      "stale_evidence_errors": 0,
+      "calls": 49,
+      "prompt_tokens": 242986,
+      "completion_tokens": 21444,
+      "accounted_cny": 1.1149499999999999,
+      "agent_tools": 51,
+      "prefetch_tools": 0,
+      "mean_elapsed_s": 107.63360572389502,
+      "prefetch_s": 0
+    },
+    "A": {
+      "assigned": 8,
+      "geometry_success": 8,
+      "full_success": 8,
+      "unknown_labels": 0,
+      "unsafe_final": 0,
+      "trials_with_unsafe_boundary": 0,
+      "stale_evidence_errors": 0,
+      "calls": 37,
+      "prompt_tokens": 463449,
+      "completion_tokens": 20508,
+      "accounted_cny": 1.7594910000000001,
+      "agent_tools": 29,
+      "prefetch_tools": 40,
+      "mean_elapsed_s": 79.46563276575762,
+      "prefetch_s": 3.761021538753994
+    }
+  }
+}

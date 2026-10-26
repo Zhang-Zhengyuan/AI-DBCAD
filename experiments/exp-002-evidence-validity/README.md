@@ -1,24 +1,61 @@
 # EXP-002 · 跨版本证据失效预实验
 
-状态：**planned，尚未实现或运行**。本次只建立登记和可否证边界，不把已有三 harness 结果算作本实验，不产生付费调用。
+状态：**completed，2026-10-26 完成首轮受控检查点实验**。正式 24 个恢复分支，另有独立开发和两个事后诊断；不是自然长期编辑链，候选证据维护方法尚未实现或验证。
 
-目标是检验：已有 AI-CAD harness 在获得正确观测后，面对后续外部修改，是否会在可观察、可补查的条件下误用旧证据并造成错误行动。机制反例只能证明“可能发生”；研究价值还需要实际系统表现、强基线和完整成本。
+研究方向：持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作。检验旧几何观测在外部编辑后是否进入错误行动，与当前状态按需补查和完整相关查询刷新比较。
 
-## 首轮拟比较
+## 实际结果与解释
 
-- 成对条件：无外部变化、无关编辑、有影响的外部编辑；另设合法需求更新，区分要求替换和记忆失效。
-- 固定检查点诊断：先保存旧观测，再向所有方法提供相同版本变化通知、当前状态及查询权限，独立求值器给出当前真值。之后才扩展继承各自输出的闭环链。
-- 现有 harness 的正常续作、从最新状态重读/重验的强基线，以及简单依赖/空间范围策略。不能故意禁止已有系统查询，再据此断言它会误用证据。
-- 记录“命题失效”“实际引用旧证据”“行动或要求失败”的独立标注；记录 Unknown、非目标损伤、失败分母、token、查询、维护、判定费用和总延迟。
+| 策略 | 最终任务验收 | 曾进入违规目标状态 | 恢复 API 费用 |
+|---|---:|---:|---:|
+| N：完整旧历史续作 | 5/8 | 4/8 | ¥1.179744 |
+| F：清除旧观测，按需补查 | 8/8 | 0/8 | ¥1.114950 |
+| A：完整任务相关查询族刷新 | 8/8 | 0/8 | ¥1.759491 |
 
-首轮场景、样本数、种子、模型、可执行入口和预算尚待冻结，当前不声称已经预注册了完整实验。开始前补齐这些定义及独立验收实现；每次运行新建 `runs/<run-id>/`，使用 `_template/run.example.json` 保存实际配置和来源。
+N 的四个有影响变化分支均先执行后重验或未重验，其中一个后来恢复正确。三个最终失败中，slider-E3-N 公开重复了过期的 5 mm，而当前独立真值为 0 mm、交叠约 16 mm³；另两个涉及先执行、后检测及撤销/恢复不足，具体旧数值使用归因 unknown。不能把全部失败说成已确认的同一种记忆错误。
 
-## 否证和收缩条件
+本轮全部 194 次模型调用按登记单价计账 ¥5.207439，包括失败/开发预检、4 个开发恢复、正式检查点、24 个正式恢复和两个事后诊断；100 元上限，未结算/未知费用调用 0。价格为用户 2026-10-25 提供的输入 3 / 输出 18 元每百万 token，金额不是提供方最终账单。
 
-若正常续作已稳定重查并避免旧证据误用，则不能声称普遍存在该失败；若错误可由普通建模失败或信息不可观测解释，不能归因为证据维护；若全量重读或简单空间策略以相近总成本解决问题，则收缩复杂方法的主张。链越长整链成功率越低，本身不足以证明记忆失效。
+事后诊断保留同一旧历史并增加一般提醒：版本回声组最终修正但曾先违规，具体当前测量组在动作前阻止；各一次，不进入正式分母，不作为平均因果效应。公开轨迹归因由执行 agent 审阅，尚无独立人类盲审；几何与费用另由程序验算。
 
-## 后续建议的处理
+结果支持受控机制存在和继续研究动作前证据/计划重验，不证明工业发生率、其他系统普遍失败或复杂记忆系统优越。F 是便宜且有效的强基线。见 [冻结协议](PROTOCOL.md)、[精选摘要](results/summary.json)、[全部逐格指标](results/trials.csv)、[归因标注](results/annotations.json)、[来源与哈希](results/manifest.json)。协议中的“人工核对”实际由执行 agent 逐条审阅，并非另有独立人类标注员。
 
-外部 agent 提到的 ATR/Selective Revalidation、全管道成本和自然编辑链挖掘，先作为待核实线索。核对原论文、官方实现和数据 schema 后再决定引用、适配与实验；不能仅凭粘贴建议把论文存在性、效果数字或 natural chain 可用性写成事实。
+## 实现与验证
 
-自然编辑链尤其需核对前后模型能否连续关联、编辑次序/作者信息、当前有效要求和许可；960 条编辑记录不自动等于 960 个可串联阶段。相关文献工作笔记与开题材料保存在本地 `docs/research/`。
+- pilot.py：固定 AgenticCADedit 官方 MCP 服务器与 BaseVLM 工具编排上的预检后暂停及 N/F/A 策略。上游 c084034cdcf462025a60ee70c5ba94577428e5ca 未修改；这是客户端适配，不是原论文完整持续任务复现。
+- scenes.py：两类场景、解析间隙/OCP 核对、最终 STEP 对称差评分；不判断连续运动路径。
+- analyze.py：全部分配分母、中间 STEP、唯一账本及显式 unknown 标注。
+- probe.py：独立事后“提醒/具体测量”诊断，共用原账本，无重试。
+- figures.py：生成静态科学图，只写本地 runs/。
+- test_pilot.py：真实 MCP/内核离线验证，不调用模型 API。
+
+```bash
+research/agenticcad_edit/.local/venv/bin/python -m unittest discover -s experiments/exp-002-evidence-validity -p 'test_*.py' -v
+research/agenticcad_edit/.local/venv/bin/python -m unittest discover -s research/agenticcad_edit -p 'test_budget.py' -v
+python3 scripts/experiments.py check
+```
+
+实测分别通过 4 项、6 项及登记/哈希检查。未改 DBCAD/ACIS/数据库/浏览器协议，未重跑这些模块的全栈验证。
+
+已有原始运行的再分析不再调用 API：
+
+```bash
+research/agenticcad_edit/.local/venv/bin/python experiments/exp-002-evidence-validity/analyze.py --run experiments/exp-002-evidence-validity/runs/20261026-agentic-v1-s20261026
+research/agenticcad_edit/.local/venv/bin/python experiments/exp-002-evidence-validity/figures.py --run experiments/exp-002-evidence-validity/runs/20261026-agentic-v1-s20261026
+```
+
+## 新运行与冻结
+
+原始运行不在干净 clone 中。新一批付费实验须另有明确预算授权；默认参数和本轮剩余额度不构成下一批花费授权。
+
+使用 pilot.py init --run 新的 runs/目录；checkpoint --scene pin|slider [--dev] 生成检查点；trial --scene … --event E0|E1|E3|E4 --policy N|F|A [--dev] 执行一个恢复分支。先离线检查、开发及核对真实测量/未改几何，再将 run.json 的 SHA-256 与 source_hashes 写入 freeze.json，随后 batch --run … 执行固定分配。batch 核对冻结哈希，已有尝试不重试；单分支也拒绝覆盖。AST 暂停条件不等于语义正确，必须逐条核对观测。
+
+本次实际按固定 seed 队列最多并行两个独立 MCP 分支，共享文件锁账本，精确脚本保存为本地 execute-primary.py。模型采样 seed 未指定；20261026 只固定队列。正式输出上限 4096、预检最多 8 次、恢复最多 12 次调用。开发修订、旧配置和失败都保留。
+
+## 本地产物与收录
+
+原始目录：runs/20261026-agentic-v1-s20261026/。名称 v1 是初始容器名，正式冻结协议为 v4，不重写旧记录。
+
+完整报告：docs/research/EXP002_AGENTICCADEDIT_RESULTS_20261026.md；三分钟开题稿：docs/research/EXP002_OPENING_TALK_20261026.md。包含全部结果、研究启发、可说/不可说结论、图和答辩准备。
+
+代码、冻结协议和脱敏小指标具有共享复现价值，汇总为 Issue #20 的一个交付单元。报告/讲稿、图/PDF、模型、API 原始记录、账本保持本地忽略。回滚代码提交不删除原始运行或账本，不涉及数据库恢复。

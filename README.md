@@ -8,9 +8,9 @@ ResumaCAD 研究共享 CAD 项目经历人工编辑、需求更新和暂停/恢�
 
 ## 当前进度
 
-已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”。拟研究持续编辑 benchmark 和几何证据维护方法，**两项仍处于选题与预实验准备阶段，尚未实现或验证**。
+已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”。已完成首轮 AgenticCADedit 受控检查点预实验；真正连续的编辑 benchmark 和候选几何证据维护方法尚未实现或验证。
 
-DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单请求对照已有结果；它们不能证明长期证据失效的普遍性，也不能证明候选方法有效。后续先用独立几何真值、成对外部变化、现有 harness 和从最新状态重查的强基线检验问题，再决定方法投入。
+DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单请求对照已有结果；它们不能证明长期证据失效的普遍性，也不能证明候选方法有效。EXP-002 已用独立几何真值和成对外部变化观察到旧数值误用案例；按需重查也是有效且廉价的强基线，后续方法必须正面比较。
 
 不宣称“首次多轮 CAD”或“首次长时程 CAD”。已有 mrCAD、CADWorld、HistCAD、Concord/TRACE 等近邻工作需要明确比较；合法需求更新与误用旧观测须分别评价。新颖性、实际错误率和完整成本仍需核实。
 
@@ -18,7 +18,7 @@ DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单�
 
 - [实验索引](experiments/README.md)：每个实验的稳定 ID、协议、代码、结果和本地原始记录位置。
 - [EXP-001 · 已完成三 harness 对照](experiments/exp-001-three-harness/README.md)：精选文本指标、代理评分的后验局限和来源清单。
-- [EXP-002 · 证据失效预实验](experiments/exp-002-evidence-validity/README.md)：仅计划，尚未运行。
+- [EXP-002 · 证据失效预实验](experiments/exp-002-evidence-validity/README.md)：已完成 24 个正式恢复分支；N/F/A 最终成功 5/8、8/8、8/8，不能外推工业发生率。
 - [研究适配与复现](research/README.md)：固定上游、依赖环境、数据与 harness 入口。
 - [DBCAD 底座](systems/dbcad/README.md)：worker、后端、前端、构建与部署。
 - [代码导航](docs/ai/PROJECT_CONTEXT.md) · [Mac 接手说明](docs/ai/MAC_HANDOFF.md)。

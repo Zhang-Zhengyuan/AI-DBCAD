@@ -2,16 +2,36 @@
   "schema_version": 1,
   "id": "EXP-002",
   "title": "跨版本证据失效预实验",
-  "status": "planned",
-  "code_paths": [],
-  "data_references": [],
+  "status": "completed",
+  "code_paths": [
+    "experiments/exp-002-evidence-validity/pilot.py",
+    "experiments/exp-002-evidence-validity/scenes.py",
+    "experiments/exp-002-evidence-validity/analyze.py",
+    "experiments/exp-002-evidence-validity/probe.py",
+    "experiments/exp-002-evidence-validity/figures.py",
+    "experiments/exp-002-evidence-validity/test_pilot.py"
+  ],
+  "data_references": [
+    "AgenticCADedit upstream c084034cdcf462025a60ee70c5ba94577428e5ca",
+    "Synthetic scenes generated from scenes.py; exact protocol in results/frozen-protocol.json"
+  ],
   "local_run_roots": [
     "experiments/exp-002-evidence-validity/runs"
   ],
-  "result_paths": [],
+  "result_paths": [
+    "experiments/exp-002-evidence-validity/results/annotations.json",
+    "experiments/exp-002-evidence-validity/results/diagnostics.json",
+    "experiments/exp-002-evidence-validity/results/frozen-protocol.json",
+    "experiments/exp-002-evidence-validity/results/manifest.json",
+    "experiments/exp-002-evidence-validity/results/summary.json",
+    "experiments/exp-002-evidence-validity/results/trials.csv"
+  ],
   "limitations": [
-    "No implementation or new experiment execution yet",
-    "Scenarios, sample size, seed, runnable entrypoint and paid budget must be specified before execution",
-    "External literature suggestions and natural-edit-chain feasibility are unverified"
+    "One adapted harness, one API model alias with unknown weights revision, two synthetic scene families",
+    "Frozen single-change checkpoints, not natural long-horizon editing chains or industrial prevalence",
+    "One clear public expired-numeric evidence case; other attribution unknown and execution/undo issues separated",
+    "Public labels reviewed by execution agent without independent human blinded adjudication",
+    "Strong on-demand query baseline already works; no candidate evidence-maintenance method implemented or validated",
+    "Fees are token-based estimates at user-supplied tariff, not final provider invoices"
   ]
 }
