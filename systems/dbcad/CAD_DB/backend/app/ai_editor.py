@@ -7,10 +7,11 @@ command: all geometry passes through the existing native command contract.
 from __future__ import annotations
 import asyncio
 import base64
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import json
 import logging
 import math
+import os
 from pathlib import Path
 import tempfile
 import time
@@ -25,7 +26,7 @@ from .component_store import get_component_store
 from .config import settings
 from .entity_projection import write_projections
 from .events_hub import hub
-from .v1_store import get_v1_store
+from .v1_store import SceneComponent, get_v1_store
 from .worker_client import get_worker_gateway
 from .worker_pool import get_worker_pool
 
@@ -91,16 +92,27 @@ class Job:
     version: int | None = None
     task: asyncio.Task | None = None
     trace_dir: str | None = None
+    messages: list = field(default_factory=list)
+    segment_calls: int = 0
+    segment_limit: int = 20
+    pause_reason: str | None = None
+    model: str = ""
+    ledger: str = ""
 
     def public(self):
         return {
             "id": self.id,
             "project_id": self.project,
             "base_version": self.base,
+            "instruction": self.instruction,
             "status": self.status,
             "summary": self.summary,
             "trace": self.trace,
             "calls": self.calls,
+            "segment_calls": self.segment_calls,
+            "segment_limit": self.segment_limit,
+            "pause_reason": self.pause_reason,
+            "can_resume": self.status == "paused" and self.pause_reason in {"round_limit", "budget_limit"} and not self.cancelled,
             "cancel_requested": self.cancelled,
             "estimated_cny": self.cost,
             "version": self.version,
@@ -109,7 +121,7 @@ class Job:
                 "version": self.base or 0,
                 "components": [c.to_scene_json() for c in self.manifest],
             }
-            if self.status in ("ready", "applied")
+            if self.status in ("paused", "ready", "applied")
             else None,
         }
 
@@ -124,32 +136,93 @@ def _head(project):
 
 def find_job(project, job_id):
     job = jobs.get(job_id)
+    if job is None:
+        job = restore_job(project, job_id)
+        if job:
+            make_room()
+            jobs[job.id] = job
     if job is None or job.project != project:
-        raise HTTPException(404, "AI job not found (jobs expire on server restart)")
+        raise HTTPException(404, "AI job not found (no saved checkpoint for this job)")
     return job
 
 
-async def start(project, base, instruction, selected):
-    config = configuration()
+def check_running(project):
     if sum(j.status == "running" for j in jobs.values()) >= 2:
         raise HTTPException(429, "已有两个 AI 编辑任务在运行")
     if any(j.project == project and j.status == "running" for j in jobs.values()):
         raise HTTPException(409, "此项目已有 AI 编辑任务")
+
+
+def make_room():
+    for key in list(jobs):
+        if len(jobs) < 100:
+            return
+        if jobs[key].status in {"failed", "cancelled", "applied"}:
+            jobs.pop(key)
+    if len(jobs) >= 100:
+        raise HTTPException(429, "未完成的 AI 预览过多，请先应用或放弃已有预览")
+
+
+async def start(project, base, instruction, selected):
+    config = configuration()
+    check_running(project)
     head, components = _head(project)
     if base != head:
         raise HTTPException(409, {"reason": "stale_base_version", "current_head": head})
     if set(selected) - {c.hash_sat for c in components}:
         raise HTTPException(422, "所选组件不属于当前版本")
-    for key in list(jobs):
-        if len(jobs) < 100:
-            break
-        if jobs[key].status != "running":
-            jobs.pop(key)
+    make_room()
     job = Job(
         uuid4().hex, project, base, instruction, selected, components, list(components)
     )
     job.trace_dir = config.get("trace_dir")
+    job.model = config["pricing"]["model"]
+    job.ledger = str(config["budget"].path.resolve())
     jobs[job.id] = job
+    job.task = asyncio.create_task(run(job, config))
+    return job
+
+
+async def resume(job, instruction=""):
+    # A paused status may become visible while finally is still releasing its worker.
+    if job.status == "paused" and job.task and not job.task.done():
+        await asyncio.shield(job.task)
+    if job.status != "paused" or job.pause_reason not in {"round_limit", "budget_limit"} or job.cancelled:
+        raise HTTPException(409, "此任务不能继续；只有已暂停的未完成预览可以续作")
+    head, _ = _head(job.project)
+    if head != job.base:
+        raise HTTPException(409, {"reason": "stale_base_version", "current_head": head})
+    check_running(job.project)
+    config = configuration()
+    if (job.model != config["pricing"]["model"] or
+            job.ledger != str(config["budget"].path.resolve())):
+        raise HTTPException(409, "模型或预算账本已改变，不能把旧任务当成新额度继续")
+    entries = config["budget"].update(lambda d: [c for c in d["calls"] if c["label"] == "native-ai/" + job.id])
+    if any(c["status"] != "completed" for c in entries):
+        raise HTTPException(409, "上次调用费用或结果尚未确认，请先核对账本，不能自动重试")
+    job.cost = max(job.cost, sum(c["charged_or_reserved_cny"] for c in entries))
+    job.calls = max(job.calls, len(entries))
+    if job.cost >= float(config.get("job_soft_limit_cny", 4)):
+        raise HTTPException(402, "本任务累计费用上限已到；继续不会重置费用额度")
+    budget = config["budget"].summary()
+    pricing = config["pricing"]
+    reservation = (pricing["context_tokens"] * pricing["input_cny_per_million"] + 2048 * pricing["output_cny_per_million"]) / 1e6
+    if budget["charged_or_reserved_cny"] + reservation > budget["limit_cny"]:
+        raise HTTPException(402, "预算账本可用额度不足，本次未发起模型调用；请先核对预算")
+    if not job.messages:
+        raise HTTPException(409, "缺少完整对话检查点，不能伪装为原任务续作")
+    assets = get_component_store()
+    if any(assets.read("sat", c.hash_sat) is None for c in job.manifest):
+        raise HTTPException(409, "预览的几何资产不完整，无法继续")
+    job.messages.append({"role": "user", "content":
+        "继续同一个未完成的 CAD 任务。当前预览和之前的工具结果均保留；先检查当前状态，"
+        "在已有成果上继续，保留符合要求的部分，不要因为上一段用完调用次数就推倒重建。"
+        "只有真正完成并验证原要求后才调用 finish；否则系统会保留进度再次暂停。"
+        + ("\n本次补充要求：" + instruction.strip() if instruction.strip() else "")})
+    job.trace.append({"step": len(job.trace) + 1, "tool": "resume", "outcome": "ok",
+                      "detail": "继续同一任务，保留预览与累计费用" + ("；补充要求：" + instruction.strip() if instruction.strip() else "")})
+    job.status, job.pause_reason, job.summary = "running", None, "正在从未完成预览继续"
+    job.segment_calls = 0
     job.task = asyncio.create_task(run(job, config))
     return job
 
@@ -368,24 +441,24 @@ async def run(job, config):
         "Only cube/sphere/cylinder/cone/torus creation is supported in this adapter. "
         "Tool schemas: " + json.dumps(schemas, ensure_ascii=False)
     )
-    messages = [
-        {"role": "system", "content": prompt},
-        {
-            "role": "user",
-            "content": job.instruction
-            + "\nInitial scene: "
-            + json.dumps(inspect(job), ensure_ascii=False),
-        },
-    ]
+    if not job.messages:
+        job.messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": job.instruction + "\nInitial scene: "
+             + json.dumps(inspect(job), ensure_ascii=False)},
+        ]
+    messages = job.messages
+    job.segment_limit = max(1, min(int(config.get("max_calls", 20)), 40))
+    job.segment_calls = 0
     try:
         async with httpx.AsyncClient(timeout=180) as client:
-            for turn in range(min(int(config.get("max_calls", 20)), 40)):
+            for turn in range(job.segment_limit):
                 if job.cancelled:
                     job.status = "cancelled"
                     job.summary = "已停止，正式模型未修改"
                     return
                 if job.cost >= float(config.get("job_soft_limit_cny", 4)):
-                    raise BudgetExceeded("本任务费用上限已到，正式模型未修改")
+                    raise BudgetExceeded("本任务累计费用上限已到")
                 index = config["budget"].reserve(
                     config["pricing"]["model"], 2048, "native-ai/" + job.id
                 )
@@ -410,7 +483,10 @@ async def run(job, config):
                 response.raise_for_status()
                 data = response.json()
                 job.calls += 1
+                job.segment_calls += 1
                 config["budget"].settle(index, data.get("usage"), data.get("model"))
+                if not data.get("usage"):
+                    raise BudgetExceeded("本次调用缺少费用信息，已保留预算预留；请核对后处理")
                 usage = data.get("usage") or {}
                 job.cost += (
                     usage.get("prompt_tokens", 0)
@@ -545,34 +621,104 @@ async def run(job, config):
                         )
                     if finished:
                         return
-            job.status = "failed"
-            job.summary = "已达轮次上限，正式模型未修改。可查看过程后简化指令重试。"
+            job.status, job.pause_reason = "paused", "round_limit"
+            job.summary = (f"本段 {job.segment_limit} 次模型调用已用完，未完成预览已保留。"
+                           "可查看中间模型并继续同一任务；累计费用不会重置，正式模型未修改。")
     except asyncio.CancelledError:
         job.status = "cancelled"
         job.summary = "服务停止，未应用的预览已取消"
         raise
     except BudgetExceeded as error:
-        job.status = "failed"
-        job.summary = str(error)
+        job.status, job.pause_reason = "paused", "budget_limit"
+        job.summary = str(error) + "；中间预览已保留，正式模型未修改"
     except Exception as error:
         job.status = "failed"
         job.summary = "AI 服务失败（" + type(error).__name__ + "），正式模型未修改"
     finally:
-        await get_worker_pool().release("ai-" + job.id)
-        # Trace is local and contains no provider credentials or headers.
-        persist(job)
+        try:
+            await get_worker_pool().release("ai-" + job.id)
+        finally:
+            persist(job)
+
+
+def _atomic_json(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, ensure_ascii=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _checkpoint_path(folder, job_id):
+    if len(job_id) != 32 or any(c not in "0123456789abcdef" for c in job_id):
+        raise ValueError("Invalid checkpoint ID")
+    return Path(folder) / "checkpoints" / (job_id + ".json")
+
+
+def restore_job(project, job_id):
+    if not settings.ai_config:
+        return None
+    try:
+        folder = json.loads(Path(settings.ai_config).read_text()).get("trace_dir")
+        if not folder:
+            return None
+        path = _checkpoint_path(folder, job_id)
+        if not path.exists():
+            # Legacy failed traces contain neither full messages nor geometry.
+            # Keep their audit trail visible, but never fabricate a resumable job.
+            legacy = json.loads((Path(folder) / (job_id + ".json")).read_text())
+            if legacy.get("project_id") != project or legacy.get("status") not in {"failed", "cancelled"}:
+                return None
+            return Job(job_id, project, legacy.get("base_version"), legacy.get("instruction", ""), [], [], [],
+                       status=legacy["status"], calls=legacy.get("calls", 0), cost=legacy.get("estimated_cny", 0),
+                       trace=legacy.get("trace", []), summary=legacy.get("summary", "") +
+                       "（旧版本仅保存过程记录，未保存完整对话检查点，无法原样续接。）")
+        payload = json.loads(path.read_text())
+        if (payload.get("schema_version") != 1 or payload.get("id") != job_id or
+                payload.get("project") != project):
+            return None
+        fields = {key: payload[key] for key in (
+            "id", "project", "base", "instruction", "selected", "created", "status", "summary",
+            "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
+            "segment_limit", "pause_reason", "model", "ledger")}
+        if fields["status"] not in {"paused", "ready", "failed", "cancelled", "applied"}:
+            return None
+        fields["original"] = [SceneComponent(**c) for c in payload["original"]]
+        fields["manifest"] = [SceneComponent(**c) for c in payload["manifest"]]
+        fields["history"] = [[SceneComponent(**c) for c in stage] for stage in payload["history"]]
+        fields["projections"] = payload["projections"]
+        fields["trace_dir"] = folder
+        return Job(**fields)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        logger.warning("AI checkpoint unavailable (%s)", type(error).__name__)
+        return None
 
 
 def persist(job):
     if job.trace_dir:
         try:
             folder = Path(job.trace_dir)
-            folder.mkdir(parents=True, exist_ok=True)
-            (folder / (job.id + ".json")).write_text(
-                json.dumps(job.public(), ensure_ascii=False, indent=2)
-            )
-        except OSError as error:
+            _atomic_json(folder / (job.id + ".json"), job.public())
+            if job.status != "running":
+                payload = {key: getattr(job, key) for key in (
+                    "id", "project", "base", "instruction", "selected", "created", "status", "summary",
+                    "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
+                    "segment_limit", "pause_reason", "model", "ledger", "projections")}
+                payload.update(schema_version=1,
+                    original=[asdict(c) for c in job.original], manifest=[asdict(c) for c in job.manifest],
+                    history=[[asdict(c) for c in stage] for stage in job.history])
+                _atomic_json(_checkpoint_path(folder, job.id), payload)
+        except (OSError, ValueError) as error:
             logger.warning("AI trace could not be saved (%s)", type(error).__name__)
+            if job.status in {"paused", "ready"} and not any(t.get("tool") == "checkpoint" for t in job.trace):
+                job.trace.append({"step": len(job.trace) + 1, "tool": "checkpoint", "outcome": "error",
+                                  "detail": "部分任务记录写盘失败；当前预览仍在内存，请勿重启服务，先继续或应用并处理存储问题。"})
 
 
 def apply(job, author):

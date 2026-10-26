@@ -21,6 +21,11 @@ class ApplyRequest(BaseModel):
     author: str = Field(default="AI editor", min_length=1, max_length=120)
 
 
+class ResumeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    instruction: str = Field(default="", max_length=6000)
+
+
 @router.get("/ai/status")
 def status():
     return ai_editor.availability()
@@ -47,11 +52,17 @@ def cancel(project_id: str, job_id: str):
     _project_or_404(project_id)
     job = ai_editor.find_job(project_id, job_id)
     job.cancelled = True
-    if job.status == "ready":
+    if job.status in {"ready", "paused"}:
         job.status = "cancelled"
         job.summary = "已放弃预览，正式模型未修改"
     ai_editor.persist(job)
     return job.public()
+
+
+@router.post("/projects/{project_id}/ai/jobs/{job_id}/resume", status_code=202)
+async def resume(project_id: str, job_id: str, payload: ResumeRequest):
+    _project_or_404(project_id)
+    return (await ai_editor.resume(ai_editor.find_job(project_id, job_id), payload.instruction)).public()
 
 
 @router.post("/projects/{project_id}/ai/jobs/{job_id}/apply")

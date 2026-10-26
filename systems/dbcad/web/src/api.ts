@@ -103,8 +103,10 @@ export interface AIStatus {
 }
 export interface AIJob {
   id: string; project_id: string; base_version: number | null;
-  status: "running" | "ready" | "applied" | "failed" | "cancelled";
+  status: "running" | "paused" | "ready" | "applied" | "failed" | "cancelled";
   summary: string; calls: number; cancel_requested?: boolean; estimated_cny: number; scene: Scene | null;
+  segment_calls?: number; segment_limit?: number; pause_reason?: string | null; can_resume?: boolean;
+  instruction?: string;
   trace: { step: number; tool: string; outcome?: string; detail: string }[];
 }
 
@@ -114,6 +116,8 @@ export const api = {
     request<AIJob>(`/api/v1/projects/${id}/ai/jobs`, { method: "POST", body: JSON.stringify({instruction, base_version, selected}) }),
   aiJob: (id: string, job: string) => request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}`),
   aiCancel: (id: string, job: string) => request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}/cancel`, {method: "POST"}),
+  aiResume: (id: string, job: string, instruction: string) =>
+    request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}/resume`, {method: "POST", body: JSON.stringify({instruction})}),
   aiApply: (id: string, job: string) => request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}/apply`, {method: "POST", body: JSON.stringify({author: userName})}),
   projects: () => request<ProjectInfo[]>("/api/v1/projects"),
   createProject: (name: string) => request<ProjectInfo>("/api/v1/projects", {
