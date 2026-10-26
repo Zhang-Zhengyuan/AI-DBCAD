@@ -1,10 +1,12 @@
 """Lifecycle regression checks without Docker or access to development data."""
 import argparse
+from contextlib import contextmanager
 import importlib.util
 import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import socket
 import subprocess
 import sys
@@ -20,6 +22,144 @@ SPEC.loader.exec_module(launcher)
 
 @unittest.skipUnless(sys.platform == "darwin", "macOS process identity and sockets")
 class LauncherTests(unittest.TestCase):
+    @contextmanager
+    def workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            local = root / ".local/macos"
+            backend = root / "systems/dbcad/CAD_DB/backend"
+            backend.mkdir(parents=True)
+            with patch.multiple(launcher, ROOT=root, LOCAL=local, SETTINGS=local / "settings.json",
+                                STATE=local / "processes.json", BACKEND=backend):
+                yield root, local, launcher.config()
+
+    @contextmanager
+    def listening_service(self, root, local, port, service="backend", legacy=False, foreign=False, app_dir=None):
+        # Real isolated process/socket; module name and argv match the launcher.
+        # No Docker, development models or actual backend imports are involved.
+        server = "import socket,time\ns=socket.socket();s.bind(('127.0.0.1',PORT));s.listen();time.sleep(120)\n"
+        if service == "gateway":
+            script = root / "scripts/macos-gateway.cjs"
+            script.parent.mkdir(exist_ok=True)
+            script.write_text(f"require('node:net').createServer().listen({port}, '127.0.0.1');\n")
+            argv = [shutil.which("node"), str(script)]
+        elif foreign:
+            script = root / "other-service.py"
+            script.write_text(server.replace("PORT", str(port)))
+            argv = [sys.executable, str(script)]
+        else:
+            (local / "uvicorn.py").write_text(server.replace("PORT", str(port)))
+            app_dir = app_dir or (root / "CAD_DB/backend" if legacy else launcher.BACKEND)
+            argv = [sys.executable, "-m", "uvicorn", "--app-dir", str(app_dir),
+                    "app.main:app", "--host", "127.0.0.1", "--port", str(port)]
+        process = subprocess.Popen(argv, cwd=local, start_new_session=True,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            for _ in range(50):
+                if process.pid in launcher.listener_pids(port):
+                    break
+                if process.poll() is not None:
+                    self.fail("Test listener exited before readiness")
+                time.sleep(.05)
+            else:
+                self.fail("Test listener failed to bind")
+            yield process
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=5)
+
+    def test_missing_and_stale_records_recover_owned_current_and_legacy_backend(self):
+        for legacy in (False, True):
+            for stale in (False, True):
+                with self.subTest(legacy=legacy, stale=stale), self.workspace() as (root, local, data):
+                    with self.listening_service(root, local, data["ports"]["backend"], legacy=legacy) as process:
+                        records = {"backend": {"pid": process.pid, "identity": "obsolete"}} if stale else {}
+                        launcher.save(launcher.STATE, records)
+                        recovered = launcher.recover_records(records)
+                        self.assertEqual(recovered["backend"]["pid"], process.pid)
+                        self.assertTrue(launcher.alive(recovered["backend"]))
+                        launcher.stop(argparse.Namespace(database=False))
+                        process.wait(timeout=5)
+                        self.assertEqual(launcher.listener_pids(data["ports"]["backend"]), [])
+                        self.assertEqual(json.loads(launcher.STATE.read_text()), {})
+
+    def test_owned_backend_command_through_old_workspace_alias_is_recovered(self):
+        with self.workspace() as (root, local, data):
+            alias = root.parent / (root.name + "-alias")
+            alias.symlink_to(root, target_is_directory=True)
+            try:
+                with self.listening_service(root, local, data["ports"]["backend"], app_dir=alias / "CAD_DB/backend") as process:
+                    launcher.stop(argparse.Namespace(database=False))
+                    process.wait(timeout=5)
+            finally:
+                alias.unlink()
+
+    @unittest.skipUnless(shutil.which("node"), "Node gateway")
+    def test_missing_record_recovers_owned_gateway(self):
+        with self.workspace() as (root, local, data):
+            with self.listening_service(root, local, data["ports"]["web"], service="gateway") as process:
+                launcher.stop(argparse.Namespace(database=False))
+                process.wait(timeout=5)
+                self.assertEqual(launcher.listener_pids(data["ports"]["web"]), [])
+
+    def test_foreign_listener_in_same_directory_survives_and_gets_actionable_error(self):
+        with self.workspace() as (root, local, data):
+            with self.listening_service(root, local, data["ports"]["backend"], foreign=True) as process:
+                launcher.stop(argparse.Namespace(database=False))
+                self.assertIsNone(process.poll())
+                with self.assertRaisesRegex(RuntimeError, f"port {data['ports']['backend']}.*PID {process.pid}"):
+                    launcher.check_ports(data)
+                self.assertIsNone(process.poll())
+
+    def test_matching_command_in_foreign_working_directory_is_not_adopted(self):
+        with self.workspace() as (root, local, data):
+            foreign = root / "foreign"
+            foreign.mkdir()
+            with self.listening_service(root, foreign, data["ports"]["backend"]) as process:
+                launcher.stop(argparse.Namespace(database=False))
+                self.assertIsNone(process.poll())
+
+    def test_lifecycle_lock_rejects_overlap_and_releases_after_error(self):
+        with self.workspace():
+            with self.assertRaisesRegex(RuntimeError, "deliberate failure"):
+                with launcher.lifecycle_lock():
+                    with self.assertRaisesRegex(RuntimeError, "Another DBCAD start/stop"):
+                        with launcher.lifecycle_lock():
+                            self.fail("Overlapping lifecycle operation acquired the lock")
+                    raise RuntimeError("deliberate failure")
+            with launcher.lifecycle_lock():
+                pass
+
+    def test_failed_gateway_start_cleans_only_the_backend_started_in_this_attempt(self):
+        with self.workspace() as (root, local, data):
+            web = root / "systems/dbcad/web/dist"
+            web.mkdir(parents=True)
+            (web / "index.html").touch()
+            worker = root / "worker"
+            worker.touch()
+            script = root / "owned-backend.py"
+            script.write_text("import time;time.sleep(120)\n")
+            process = subprocess.Popen([sys.executable, str(script)], cwd=local, start_new_session=True)
+            def fake_spawn(name, argv, settings, records):
+                if name == "gateway":
+                    raise RuntimeError("gateway failed")
+                records[name] = {"pid": process.pid, "identity": launcher.identity(process.pid)}
+                return process
+            try:
+                with patch.multiple(launcher, DBCAD=root / "systems/dbcad", WORKER=worker, PYTHON=Path(sys.executable)), \
+                     patch.object(launcher, "run"), patch.object(launcher, "database"), \
+                     patch.object(launcher, "wait_http"), patch.object(launcher, "spawn", side_effect=fake_spawn), \
+                     patch.object(launcher.shutil, "which", return_value="/fake/node"):
+                    with self.assertRaisesRegex(RuntimeError, "gateway failed"):
+                        launcher.start(argparse.Namespace(open=False))
+                process.wait(timeout=5)
+                self.assertEqual(json.loads(launcher.STATE.read_text()), {})
+            finally:
+                if process.poll() is None:
+                    os.killpg(process.pid, signal.SIGTERM)
+                process.wait(timeout=5)
+
     def test_listening_port_is_not_selected(self):
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))

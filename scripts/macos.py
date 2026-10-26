@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import errno
 import hashlib
 import json
 import os
 from pathlib import Path
 import secrets
+import shlex
 import shutil
 import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import zipfile
@@ -36,11 +40,36 @@ def run(*args, **kwargs):
 
 def save(path: Path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Open with restrictive permissions before writing any credentials.
-    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as stream:
-        json.dump(value, stream, indent=2)
-        stream.write("\n")
-    path.chmod(0o600)
+    # Atomic replacement avoids losing the last PID records on interruption.
+    fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as stream:
+            json.dump(value, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+@contextmanager
+def lifecycle_lock():
+    """Double-clicks and stop/start must not overwrite each other's PID records."""
+    import fcntl
+
+    LOCAL.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(LOCAL / "lifecycle.lock", os.O_RDWR | os.O_CREAT, 0o600)
+    with os.fdopen(fd, "w") as stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError("Another DBCAD start/stop is in progress; wait for it to finish.") from None
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
 
 
 def free_port(preferred, excluded=()):
@@ -181,12 +210,73 @@ def alive(record):
     return bool(record.get("identity")) and identity(record["pid"]) == record["identity"]
 
 
-def stop(args):
-    records = json.loads(STATE.read_text()) if STATE.exists() else {}
+def listener_pids(port):
+    result = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+                            capture_output=True, text=True)
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"Could not inspect listeners on port {port}.")
+    return sorted({int(line) for line in result.stdout.splitlines() if line.isdigit()})
+
+
+def owned_listener(pid, service, port):
+    """Recover only our exact server shape, cwd and process-group leader.
+
+    A PID or a matching port alone is never permission to terminate a process.
+    The explicit legacy app-dir handles services left alive before the layout move.
+    """
+    before = identity(pid)
+    if not before:
+        return None
+    command = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True)
+    cwd = subprocess.run(["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+                         capture_output=True, text=True)
+    try:
+        directories = [Path(line[1:]) for line in cwd.stdout.splitlines() if line.startswith("n")]
+        if len(directories) != 1 or not directories[0].samefile(LOCAL) or os.getpgid(pid) != pid:
+            return None
+        argv = shlex.split(command.stdout.strip())
+        if service == "gateway":
+            matches = (len(argv) == 2 and Path(argv[0]).name == "node" and
+                       Path(argv[1]).resolve() == ROOT / "scripts/macos-gateway.cjs")
+        else:
+            app_dir = Path(argv[argv.index("--app-dir") + 1]).resolve()
+            matches = (Path(argv[0]).name.lower().startswith("python") and argv[1:3] == ["-m", "uvicorn"] and
+                       "app.main:app" in argv and app_dir in {BACKEND, ROOT / "CAD_DB/backend"} and
+                       argv[argv.index("--host") + 1] == "127.0.0.1" and
+                       argv[argv.index("--port") + 1] == str(port))
+        if matches and identity(pid) == before:
+            return {"pid": pid, "identity": before, "service": service, "port": port}
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def recover_records(records):
+    records = records.copy()
+    if not SETTINGS.exists():
+        return records
+    data = json.loads(SETTINGS.read_text())
+    if not same_workspace(data.get("root")):
+        return records
+    for service, key in (("backend", "backend"), ("gateway", "web")):
+        for pid in listener_pids(data["ports"][key]):
+            record = owned_listener(pid, service, data["ports"][key])
+            if record:
+                existing = next((name for name, old in records.items() if old.get("pid") == pid), None)
+                name = existing or (service if not alive(records.get(service, {})) else f"{service}-{pid}")
+                records[name] = record
+    return records
+
+
+def stop_records(records):
+    # Keep a durable recovery path if stopping is interrupted or a service refuses TERM.
+    save(STATE, records)
     for name, record in records.items():
         if not alive(record):
             continue
-        if str(ROOT) not in record["identity"] or os.getpgid(record["pid"]) != record["pid"]:
+        recovered_alias = (record.get("service") in {"backend", "gateway"} and
+                           owned_listener(record["pid"], record["service"], record["port"]) is not None)
+        if (str(ROOT) not in record["identity"] and not recovered_alias) or os.getpgid(record["pid"]) != record["pid"]:
             raise RuntimeError(f"Cannot verify ownership of {name}; refusing to stop it.")
         os.killpg(record["pid"], signal.SIGTERM)
         for _ in range(50):
@@ -196,6 +286,11 @@ def stop(args):
         else:
             raise RuntimeError(f"{name} did not stop; inspect it before restarting.")
     save(STATE, {})
+
+
+def stop(args):
+    records = json.loads(STATE.read_text()) if STATE.exists() else {}
+    stop_records(recover_records(records))
     if args.database:
         data = config()
         if container_info(data):
@@ -208,12 +303,40 @@ def spawn(name, argv, data, records):
     with log_path.open("ab") as log:
         process = subprocess.Popen([str(arg) for arg in argv], cwd=LOCAL, env=environment(data),
                                    stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+    records[name] = {"pid": process.pid, "identity": identity(process.pid)}
+    save(STATE, records)
     time.sleep(0.2)
     if process.poll() is not None:
         raise RuntimeError(f"{name} exited. Inspect {log_path}")
-    records[name] = {"pid": process.pid, "identity": identity(process.pid)}
-    save(STATE, records)
     return process
+
+
+def check_ports(data):
+    for key in ("backend", "web"):
+        port = data["ports"][key]
+        with socket.socket() as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("127.0.0.1", port))
+            except OSError as exc:
+                if exc.errno != errno.EADDRINUSE:
+                    raise
+                pids = ", ".join(map(str, listener_pids(port))) or "unknown"
+                raise RuntimeError(f"{key} port {port} is already in use (PID {pids}). "
+                                   "The listener could not be verified as this workspace's service and was not stopped.") from None
+
+
+def wait_http(url, process, name, headers=None):
+    for _ in range(60):
+        if process.poll() is not None:
+            raise RuntimeError(f"{name} exited. Inspect {LOCAL / (name + '.log')}")
+        try:
+            request = urllib.request.Request(url, headers=headers or {})
+            with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=2):
+                return
+        except (OSError, ValueError):
+            time.sleep(0.5)
+    raise RuntimeError(f"{name} did not become ready. Inspect {LOCAL / (name + '.log')}")
 
 
 def start(args):
@@ -225,27 +348,19 @@ def start(args):
     run("docker", "info", "--format", "{{.ServerVersion}}", stdout=subprocess.DEVNULL)
     data = config()
     stop(argparse.Namespace(database=False))
+    check_ports(data)
     database(data)
-    for key in ("backend", "web"):
-        with socket.socket() as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(("127.0.0.1", data["ports"][key]))
     records = {}
-    backend = spawn("backend", [PYTHON, "-m", "uvicorn", "--app-dir", BACKEND, "app.main:app",
-                                "--host", "127.0.0.1", "--port", str(data["ports"]["backend"])], data, records)
-    for _ in range(60):
-        if backend.poll() is not None:
-            raise RuntimeError(f"Backend exited. Inspect {LOCAL / 'backend.log'}")
-        try:
-            request = urllib.request.Request(f"http://127.0.0.1:{data['ports']['backend']}/api/v1/projects",
-                                             headers={"X-API-Password": data["api_password"]})
-            with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=2):
-                break
-        except (OSError, ValueError):
-            time.sleep(0.5)
-    else:
-        raise RuntimeError(f"Backend did not become ready. Inspect {LOCAL / 'backend.log'}")
-    spawn("gateway", [shutil.which("node"), ROOT / "scripts/macos-gateway.cjs"], data, records)
+    try:
+        backend = spawn("backend", [PYTHON, "-m", "uvicorn", "--app-dir", BACKEND, "app.main:app",
+                                    "--host", "127.0.0.1", "--port", str(data["ports"]["backend"])], data, records)
+        wait_http(f"http://127.0.0.1:{data['ports']['backend']}/api/v1/projects", backend, "backend",
+                  {"X-API-Password": data["api_password"]})
+        gateway = spawn("gateway", [shutil.which("node"), ROOT / "scripts/macos-gateway.cjs"], data, records)
+        wait_http(f"http://127.0.0.1:{data['ports']['web']}/web/", gateway, "gateway")
+    except BaseException:
+        stop_records(records)
+        raise
     url = f"http://127.0.0.1:{data['ports']['web']}/web/"
     print(f"ResumaCAD: {url}")
     print(f"Local logs and saved configuration: {LOCAL}")
@@ -255,9 +370,10 @@ def start(args):
 
 def status(args):
     data = config()
-    records = json.loads(STATE.read_text()) if STATE.exists() else {}
+    records = recover_records(json.loads(STATE.read_text()) if STATE.exists() else {})
     for name in ("backend", "gateway"):
-        print(f"{name}: {'running' if alive(records.get(name, {})) else 'stopped'}")
+        running = any(alive(record) for key, record in records.items() if record.get("service", key) == name)
+        print(f"{name}: {'running' if running else 'stopped'}")
     info = container_info(data)
     print(f"Neo4j: {'running' if info and info['State']['Running'] else 'stopped'}")
     print(f"Web: http://127.0.0.1:{data['ports']['web']}/web/")
@@ -280,7 +396,11 @@ def main():
     if sys.platform != "darwin":
         parser.error("This launcher requires macOS.")
     try:
-        args.func(args)
+        if args.command in {"start", "stop"}:
+            with lifecycle_lock():
+                args.func(args)
+        else:
+            args.func(args)
     except (RuntimeError, OSError, subprocess.CalledProcessError) as exc:
         print(f"DBCAD: {exc}", file=sys.stderr)
         return 1
