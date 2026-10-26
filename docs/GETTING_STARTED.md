@@ -5,8 +5,8 @@ v3 架构：浏览器是唯一客户端（React + three.js），几何计算在�
 ## 1. 获取源码与工具
 
 ```powershell
-git clone https://github.com/Zhang-Zhengyuan/DB-CAD.git
-cd DB-CAD
+git clone https://github.com/Zhang-Zhengyuan/ResumaCAD.git
+cd ResumaCAD
 ```
 
 安装 Visual Studio 2022 的 C++ 桌面开发工作负载与 Windows SDK、Python 3.11+、uv、Node.js 20.19+ 或 22.12+、Docker Desktop（Linux 容器引擎）。无 Qt 依赖（P7 已移除 Qt 客户端）。
@@ -24,7 +24,7 @@ cd DB-CAD
 ## 3. 先验证后端
 
 ```powershell
-Push-Location CAD_DB\backend
+Push-Location systems\dbcad\CAD_DB\backend
 uv sync --frozen --extra dev
 uv run --frozen pytest -q -m 'not integration'
 Pop-Location
@@ -36,7 +36,7 @@ Pop-Location
 
 ```powershell
 .\scripts\build.ps1 -Configuration Release   # CAD_DB.sln → dbcad_worker.exe（含 ACIS 运行时暂存）
-Push-Location web
+Push-Location systems/dbcad/web
 npm ci
 npm run build
 Pop-Location
@@ -47,11 +47,11 @@ Pop-Location
 ## 5. 启动全栈
 
 ```powershell
-.\CAD_DB\deploy\start_dbcad_fullstack.cmd
-.\CAD_DB\deploy\stop_dbcad_fullstack.cmd
+.\systems\dbcad\CAD_DB\deploy\start_dbcad_fullstack.cmd
+.\systems\dbcad\CAD_DB\deploy\stop_dbcad_fullstack.cmd
 ```
 
-启动链路：Neo4j（5.15 + APOC）→ FastAPI → 浏览器 `/web/`。默认端口 8000，以启动器输出为准；登录使用 `CAD_DB/deploy/dbcad.local.env` 中的 `DBCAD_PASSWORD`。worker 默认选择 Release，用 `-Configuration Debug` 可切换。首次运行生成被 Git 忽略的本机配置，不要上传配置或数据库数据。
+启动链路：Neo4j（5.15 + APOC）→ FastAPI → 浏览器 `/web/`。默认端口 8000，以启动器输出为准；登录使用 `systems/dbcad/CAD_DB/deploy/dbcad.local.env` 中的 `DBCAD_PASSWORD`。worker 默认选择 Release，用 `-Configuration Debug` 可切换。首次运行生成被 Git 忽略的本机配置，不要上传配置或数据库数据。
 
 `start_dbcad_fullstack.cmd -PrepareOnly` 只检查 worker 和 Web 构建是否存在，不启停服务，也不验证数据库认证、DLL 或许可。
 
@@ -60,23 +60,23 @@ Pop-Location
 VS/MSBuild 只构建 C++ worker，前端由 Node/Vite 构建，Python 源码重启即可。在仓库根目录执行，仅重建修改涉及的模块：
 
 ```powershell
-.\CAD_DB\deploy\stop_dbcad_fullstack.cmd
+.\systems\dbcad\CAD_DB\deploy\stop_dbcad_fullstack.cmd
 # C++ 修改后：
 .\scripts\build.ps1 -Configuration Release
 # 前端修改后：
-Push-Location web
+Push-Location systems/dbcad/web
 npm run build              # package-lock.json 变化时先 npm ci
 Pop-Location
-.\CAD_DB\deploy\start_dbcad_fullstack.cmd
+.\systems\dbcad\CAD_DB\deploy\start_dbcad_fullstack.cmd
 ```
 
 启动器同步锁定的 Python 依赖；Debug 构建需传 `-Configuration Debug`。更新代码时不要用 `-KeepExistingServices`，它会复用旧后端。停止脚本停止已记录的后端及 worker，保留数据库。
 
-前端开发可在 `web/` 执行 `npm run dev`，访问 `http://localhost:5173/web/`。代理默认指向后端 8000；其他端口在运行前设置 `$env:DBCAD_DEV_API_URL='http://127.0.0.1:18000'`。正式 `/web/` 仍需重新构建。
+前端开发可在 `systems/dbcad/web/` 执行 `npm run dev`，访问 `http://localhost:5173/web/`。代理默认指向后端 8000；其他端口在运行前设置 `$env:DBCAD_DEV_API_URL='http://127.0.0.1:18000'`。正式 `/web/` 仍需重新构建。
 
 服务检查：`/health`、`/docs`、`/web`（CAD 客户端）、`/webui`（Neo4j 管理台，要求 API 密码）。
 
-**重置会删除数据。** 正常启动不需要 `reset_dbcad_deployment.cmd`。备份后才能执行重置。Neo4j 初始化后的密码变更需按[部署说明](../CAD_DB/DEPLOYMENT.md)处理。
+**重置会删除数据。** 正常启动不需要 `reset_dbcad_deployment.cmd`。备份后才能执行重置。Neo4j 初始化后的密码变更需按[部署说明](../systems/dbcad/CAD_DB/DEPLOYMENT.md)处理。
 
 ## 6. 功能验收
 
@@ -94,8 +94,8 @@ Pop-Location
 | Docker engine 未启动 | 启动 Docker Desktop 并确认 `docker info` |
 | Neo4j/APOC 检查失败 | 检查镜像下载、容器日志和端口；不要盲目重置 |
 | Neo4j authentication failed | 配置里的密码与数据库当前密码不匹配；修正配置或使用 `-Neo4jPassword`。容器的初始 NEO4J_AUTH 不代表当前数据库密码，不要直接清库 |
-| Web client is not built | 在 web/ 执行 npm ci、npm run build，再重启后端 |
+| Web client is not built | 在 systems/dbcad/web/ 执行 npm ci、npm run build，再重启后端 |
 | worker 拉起失败 | 看 FastAPI 日志中 worker 路径与 ACIS DLL 是否就位 |
 | 401 Invalid API password | 使用 `dbcad.local.env` 生成的密码；测试环境置空 `CAD_DB_API_PASSWORD` |
 
-详细说明见 [依赖](DEPENDENCIES.md)、[代码架构](ARCHITECTURE.md)、[部署参数](../CAD_DB/DEPLOYMENT.md)。
+详细说明见 [依赖](DEPENDENCIES.md)、[代码架构](ARCHITECTURE.md)、[部署参数](../systems/dbcad/CAD_DB/DEPLOYMENT.md)。

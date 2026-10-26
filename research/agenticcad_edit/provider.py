@@ -7,7 +7,7 @@ from pathlib import Path
 
 import openai
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "CAD_DB/backend"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "systems/dbcad/CAD_DB/backend"))
 from app.ai_budget import Budget, BudgetExceeded
 
 

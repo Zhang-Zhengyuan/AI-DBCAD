@@ -64,7 +64,9 @@ python3 scripts/macos.py stop --database
 ./build/macos/Debug/mesh_tests
 python3 scripts/tests/test-macos-launcher.py
 
-cd CAD_DB/backend
+cd systems/dbcad/CAD_DB/backend
+# 对已有工作区做源码搬迁后，重建脚本入口的绝对 shebang：
+uv sync --frozen --extra dev --reinstall
 uv run --frozen pytest -q -m 'not integration'
 uv run --frozen pytest -q tests/test_v1_real_commands_integration.py tests/test_v1_real_worker_integration.py
 cd ../../web

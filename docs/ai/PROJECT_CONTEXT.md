@@ -1,6 +1,8 @@
 # 项目上下文与按需导航
 
-核对日期：2026-10-25。科研项目现名 ResumaCAD，底座沿用 DBCAD v3。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
+核对日期：2026-10-26。科研项目现名 ResumaCAD，底座沿用 DBCAD v3。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
+
+先按 [目录与收录规则](../REPOSITORY_LAYOUT.md) 判断本地/入库/远端范围。DBCAD 源码已集中到 `systems/dbcad/`；[实验索引](../../experiments/README.md) 关联稳定实验 ID、代码和结果，EXP-001 为旧单请求对照，EXP-002 为尚未运行的证据失效预实验。开题写作和汇报导出默认仅本地，不自动创建 Issue 或 PR。
 
 AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 DBCAD 底座。
 
@@ -8,7 +10,7 @@ AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。�
 
 AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API 对照入口见 [research/agenticcad_edit/README.md](../../research/agenticcad_edit/README.md)，原实现局限和评分口径见其 [PAPER_AND_CODE.md](../../research/agenticcad_edit/PAPER_AND_CODE.md)。
 
-原生 AI 编辑与三 harness 对照研究入口：[research/harness_study/README.md](../../research/harness_study/README.md)。AI 路由与隔离预览循环位于 `CAD_DB/backend/app/api/v1/ai.py`、`app/ai_editor.py`，浏览器面板为 `web/src/AIPanel.tsx`；费用控制模块 `app/ai_budget.py` 与研究 API 共用。
+原生 AI 编辑与三 harness 对照研究入口：[research/harness_study/README.md](../../research/harness_study/README.md)。AI 路由与隔离预览循环位于 `systems/dbcad/CAD_DB/backend/app/api/v1/ai.py`、`app/ai_editor.py`，浏览器面板为 `systems/dbcad/web/src/AIPanel.tsx`；费用控制模块 `app/ai_budget.py` 与研究 API 共用。
 
 Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `DBCAD.command`。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
 
@@ -22,21 +24,21 @@ Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/b
 
 | 需求 | 先定位 | 再读 / 验证 |
 |---|---|---|
-| 前端渲染、视图、组件树 | `web/src/Viewer.tsx`、`App.tsx`、`store.ts`、`api.ts` | `web/package.json`；`node scripts/showcase.cjs` 真浏览器截图 |
-| HTTP API（项目/版本/命令/资产/实体） | `CAD_DB/backend/app/api/v1/` | `backend/tests/test_api_v1_*.py` |
-| 几何命令执行（ACIS worker） | `CAD_DB/worker/main.cpp`、`session.cpp` | `docs/ARCHITECTURE.md`；`tests/test_v1_real_commands_integration.py` |
+| 前端渲染、视图、组件树 | `systems/dbcad/web/src/Viewer.tsx`、`App.tsx`、`store.ts`、`api.ts` | `systems/dbcad/web/package.json`；`node scripts/showcase.cjs` 真浏览器截图 |
+| HTTP API（项目/版本/命令/资产/实体） | `systems/dbcad/CAD_DB/backend/app/api/v1/` | `backend/tests/test_api_v1_*.py` |
+| 几何命令执行（ACIS worker） | `systems/dbcad/CAD_DB/worker/main.cpp`、`session.cpp` | `docs/ARCHITECTURE.md`；`tests/test_v1_real_commands_integration.py` |
 | STEP/SAT 导入、导出 | `worker/main.cpp`（loadModel 分发）、`backend/app/worker_client.py` | `tests/test_v1_step_import_integration.py` |
-| 网格提取与 GLB | `CAD_DB/kernel/mesh_extractor.cpp`、`glb_writer.cpp` | `docs/P0_MESH_BENCH.md`；`web/scripts/validate-assets.mjs` |
-| 实体图序列化（细档） | `CAD_DB/worker/entity_graph_codec.cpp` | `docs/ARCHITECTURE.md` ADR-3；`tests/test_v1_projection_neo4j.py` |
+| 网格提取与 GLB | `systems/dbcad/CAD_DB/kernel/mesh_extractor.cpp`、`glb_writer.cpp` | `docs/P0_MESH_BENCH.md`；`systems/dbcad/web/scripts/validate-assets.mjs` |
+| 实体图序列化（细档） | `systems/dbcad/CAD_DB/worker/entity_graph_codec.cpp` | `docs/ARCHITECTURE.md` ADR-3；`tests/test_v1_projection_neo4j.py` |
 | 版本链/组件/实体存储 | `backend/app/v1_store.py`、`entity_projection.py`、`component_store.py` | `tests/test_api_v1_entities.py`（/diff、409 冲突、压实） |
 | 细档 Neo4j 物理表示 | `backend/app/json_graph_native.py` | `docs/history/STORAGE_CONSOLIDATION_PLAN.md`（出处） |
 | 事件推送/在场感知 | `backend/app/events_hub.py`、`api/v1/events.py` | `docs/ARCHITECTURE.md` §协同 |
 | Neo4j 管理 WebUI | `backend/app/neo4j_webui/`、`static/webui/` | 鉴权与页面人工验证 |
 | 压测与基准 | `backend/scripts/benchmark_v3.py` | `docs/BENCHMARK_v3.md`（ABC 200 样本） |
 | 本机环境、构建依赖 | `scripts/check-environment.ps1`、`build.ps1`、`Directory.Build.props` | `docs/GETTING_STARTED.md`、`DEPENDENCIES.md` |
-| 部署和打包 | `CAD_DB/deploy/`、`deploy/lib/` | `CAD_DB/DEPLOYMENT.md`；`scripts/tests/test-fullstack-launcher.ps1`；`web/e2e/` |
+| 部署和打包 | `systems/dbcad/CAD_DB/deploy/`、`deploy/lib/` | `systems/dbcad/CAD_DB/DEPLOYMENT.md`；`scripts/tests/test-fullstack-launcher.ps1`；`systems/dbcad/web/e2e/` |
 
-表内 backend 路径相对 `CAD_DB/`。不确定文件名先限定目录用 `rg --files` 查找。
+表内 backend 路径相对 `systems/dbcad/CAD_DB/`。不确定文件名先限定目录用 `rg --files` 查找。
 
 ## 不要默认读取的内容
 

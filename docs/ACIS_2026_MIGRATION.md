@@ -32,7 +32,7 @@
    - `bin/SPAAcisDs.dll` ← `win_b64/code/bin/SPAAcisDs.dll`（Release 运行库）
    - `bin/SPAAcisDsd.dll` ← `win_b64_debug/code/bin/SPAAcisDs.dll`（Debug 运行库）
 4. **许可密钥**：向维护者索取配套 2026 的 `spatial_license.h`（官方
-   customer portal 生成，含 `SPATIAL_LICENSE` 宏），放到 `CAD_DB/` 下。
+   customer portal 生成，含 `SPATIAL_LICENSE` 宏），放到 `systems/dbcad/CAD_DB/` 下。
    该文件已加入 `.gitignore`，严禁入库。
 5. 接收依赖后先运行 `scripts/check-environment.ps1` 校验布局。
 
@@ -43,7 +43,7 @@
 
 对照官方《Compiler Flags for Windows 64-bit》说明与官方 2026 示例工程
 （`samples/ACIS_Functional_Examples_app`、`scm/`）核对后的要求，
-已全部写入 `CAD_DB/CAD_DB.vcxproj`：
+已全部写入 `systems/dbcad/CAD_DB/CAD_DB.vcxproj`：
 
 | 项目 | 要求 | 已配置 |
 |---|---|---|

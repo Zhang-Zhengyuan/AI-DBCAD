@@ -19,7 +19,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL = ROOT / ".local" / "macos"
-BACKEND = ROOT / "CAD_DB" / "backend"
+DBCAD = ROOT / "systems" / "dbcad"
+BACKEND = DBCAD / "CAD_DB" / "backend"
 PYTHON = BACKEND / ".venv" / "bin" / "python"
 WORKER = ROOT / "build" / "macos" / "Release" / "dbcad_worker"
 SETTINGS = LOCAL / "settings.json"
@@ -120,8 +121,8 @@ def setup(args):
     run(ROOT / "scripts/build-macos.sh", "Release")
     run(WORKER, "selftest")
     run(WORKER.parent / "mesh_tests")
-    run("npm", "ci", cwd=ROOT / "web")
-    run("npm", "run", "build", cwd=ROOT / "web")
+    run("npm", "ci", cwd=DBCAD / "web")
+    run("npm", "run", "build", cwd=DBCAD / "web")
     print("macOS setup complete. Start with ./DBCAD.command")
 
 
@@ -216,7 +217,7 @@ def spawn(name, argv, data, records):
 
 
 def start(args):
-    if not PYTHON.exists() or not WORKER.exists() or not (ROOT / "web/dist/index.html").exists():
+    if not PYTHON.exists() or not WORKER.exists() or not (DBCAD / "web/dist/index.html").exists():
         raise RuntimeError("Run python3 scripts/macos.py setup first.")
     for command in ("docker", "node"):
         if not shutil.which(command):

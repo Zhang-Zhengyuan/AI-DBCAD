@@ -1,6 +1,6 @@
 # 三 harness 研究与原生 AI 编辑
 
-所有操作从 ResumaCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。主报告为 [REPORT.md](REPORT.md)，可阅读 PDF 在 `output/inferracad-study-report.pdf`，逐例指标在 `output/episodes.csv`；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。历史报告保留当时的 InferraCAD 名称，当前选题与实现状态以[根 README](../../README.md)为准。
+所有操作从 ResumaCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。本实验已登记为 [EXP-001](../../experiments/exp-001-three-harness/README.md)。主报告为 [REPORT.md](REPORT.md)，精选文本指标在 `experiments/exp-001-three-harness/results/`；PDF、图片和重新生成的输出在本地忽略的 `output/`，不会随克隆分发；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。历史报告保留当时的 InferraCAD 名称，当前选题与实现状态以[根 README](../../README.md)为准。
 
 ## 环境与第三方代码
 
@@ -21,7 +21,7 @@ git -C research/harness_study/.local/itercad checkout --detach 55998c4a4537573f6
 
 先把凭据放在 `research/agenticcad_edit/.local/provider.env`（权限 600），不能提交或打印 Key。把已核实的价格写入本目录 `.local/pricing.json`，格式见 `../agenticcad_edit/pricing.example.json`。每个新的授权预算使用新的账本路径，禁止删除旧账本以“恢复额度”。
 
-本轮代码授权上限为 ¥100，所有生成、打分、观测诊断和原生 AI 共用 `.local/budget.json`。预留后才能请求；调用失败/没有 usage 时保留预留，不自动重试。账本模块在 `CAD_DB/backend/app/ai_budget.py`，两个入口共用同一文件锁。
+本轮代码授权上限为 ¥100，所有生成、打分、观测诊断和原生 AI 共用 `.local/budget.json`。预留后才能请求；调用失败/没有 usage 时保留预留，不自动重试。账本模块在 `systems/dbcad/CAD_DB/backend/app/ai_budget.py`，两个入口共用同一文件锁。
 
 ```bash
 research/harness_study/run.sh register

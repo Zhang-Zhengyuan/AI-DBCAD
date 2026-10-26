@@ -54,7 +54,7 @@ function Invoke-Docker([string[]]$Arguments) {
 
 $scriptRoot = Resolve-FullPath (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $projectRoot = Resolve-FullPath (Join-Path $scriptRoot "..")
-$repoRoot = Resolve-FullPath (Join-Path $projectRoot "..")
+$repoRoot = Resolve-FullPath (Join-Path $projectRoot "..\..\..")
 
 if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
     $ConfigPath = Join-Path $scriptRoot "dbcad.local.env"

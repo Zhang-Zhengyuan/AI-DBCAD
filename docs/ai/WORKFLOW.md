@@ -2,7 +2,9 @@
 
 ## 1. 登记与规划
 
-先确认真实仓库根目录和 remote，再搜索相同任务的开放 Issue。所有实现（含 docs/ci）关联真实 Issue；只读答疑和审查无需创建分支。Issue 写清问题/复现、预期结果、范围与非目标、验收清单、验证计划和兼容风险。大的协议/存储变更先由维护者确认方案；简单需求无需反复请求授权。
+先确认真实仓库根目录和 remote，按 [收录规则](../REPOSITORY_LAYOUT.md) 判断本次交付为仅本地、拟纳入 Git、还是需要远端协作。只读答疑、审查、运行已有实验、开题写作、PPT/图片/PDF 和原始输出默认仅本地，不自动创建 Issue、分支、commit、push 或 PR。
+
+拟纳入 Git 的共享变更（代码、测试、CI、依赖锁、实验定义或必要共享文档）才搜索相同任务的开放 Issue；无则创建。Issue 写清问题/复现、预期结果、范围与非目标、验收清单、验证计划和兼容风险。大的协议/存储变更先由维护者确认方案；简单需求无需反复请求授权。
 
 ## 2. 建分支
 
@@ -16,11 +18,11 @@
 | build / ci / chore | 构建 / 持续集成 / 维护 |
 | revert | 有原因和影响分析的回退 |
 
-从远端默认分支出发，不猜一定叫 main。本项目当前远端默认为 master；运行 `git remote show origin` 或查看 GitHub 确认。下面示例只有在工作区干净、Issue #123 真实存在时执行，任务类型按实际修改替换：
+从远端默认分支出发，不猜固定名称。本项目 2026-10-26 核对的远端默认分支是 main；运行 `git remote show origin` 或查看 GitHub 确认。下面示例只有在工作区干净、Issue #123 真实存在时执行，任务类型按实际修改替换：
 
 ```powershell
 git fetch origin
-git switch -c fix/123-pull-version-conflict origin/master
+git switch -c fix/123-pull-version-conflict origin/main
 ```
 
 不要为了同步而强行 `pull` 或重置已有改动。若现有工作属于别的任务，使用独立工作树并确认基线；未提交内容不会自动带入新工作树。若当前分支已含本 Issue 的工作，继续原分支，不重复建分支。
@@ -35,6 +37,8 @@ git switch -c fix/123-pull-version-conflict origin/master
 
 ## 4. 提交与 PR
 
+提交前逐文件判断收录价值；一份成熟的共享变更可以先本地提交，只有需要远端协作/备份共享代码/复现审阅时才 push 和 PR。同一 Issue 下汇总完整变更，不为每次实验运行、图片修改或导出重复提 PR。用户指定仅本地时不推送。文档扩展名不决定收录：共享协议/运行指南可入库，开题材料/讲稿默认忽略。
+
 ```powershell
 git diff --check
 git status --short
@@ -48,6 +52,8 @@ git push -u origin docs/123-ai-governance
 提交和 PR 标题统一使用 `<type>(<scope>): <description>`（scope 可选），PR type 与分支 type 一致。不要复制示例编号冒充已创建 Issue。
 
 PR 正文使用模板并单独写 `Closes #123`。列出具体验证命令、结果、未运行项目及原因，涉及 UI 附必要截图但清理凭据；写清兼容/数据影响及回滚方法。大范围变更可先 Draft PR，验收未完成保持 Draft。
+
+必要 UI 截图优先作为经授权的审阅附件；不要把研究汇报/PPT 或整批生成图片夹进源码提交。结果只选经检查的小型文本摘要并附 run ID 与哈希；原始运行留忽略目录。
 
 CI `PR policy / policy` 检查分支、标题、Closes 行和真实 Issue（不能是另一个 PR）；`Backend checks / backend` 检查无外部服务的后端测试。规则工作流使用 `pull_request_target`，只运行固定内联脚本和只读 GitHub API，**禁止 checkout/执行 PR 分支代码**。首次纳入默认分支前不会生效。
 

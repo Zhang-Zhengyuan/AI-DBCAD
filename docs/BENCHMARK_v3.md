@@ -1,6 +1,6 @@
 # v3 存储链路基准（P9-2，abc_cache 语料压测）
 
-> 2026-10-19 · 工具：`CAD_DB/backend/scripts/benchmark_v3.py` ·
+> 2026-10-19 · 工具：`systems/dbcad/CAD_DB/backend/scripts/benchmark_v3.py` ·
 > 明细：`artifacts/benchmark_v3_200.json` · 语料：ABC 数据集 STEP 模型抽样 200 件
 > （D:/DBCAD/abc_cache/extracted，真实工程 CAD 模型）。
 

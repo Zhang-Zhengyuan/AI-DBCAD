@@ -18,10 +18,10 @@ x86/
 Win32/
 Debug/
 Release/
-CAD_DB/x64/
-CAD_DB/x86/
-CAD_DB/Debug/
-CAD_DB/Release/
+systems/dbcad/CAD_DB/x64/
+systems/dbcad/CAD_DB/x86/
+systems/dbcad/CAD_DB/Debug/
+systems/dbcad/CAD_DB/Release/
 *.obj
 *.pdb
 *.ilk
@@ -31,11 +31,9 @@ CAD_DB/Release/
 *.exe
 
 # Keep source-controlled launcher scripts despite the executable ignore rules.
-!CAD_DB/deploy/*.cmd
-!CAD_DB/deploy/*.ps1
+!systems/dbcad/CAD_DB/deploy/*.cmd
+!systems/dbcad/CAD_DB/deploy/*.ps1
 !start-test.cmd
-!_deps/**/*.dll
-!_deps/**/*.lib
 
 # Generated deployment packages
 dist/
@@ -58,7 +56,7 @@ htmlcov/
 *.log
 *testlog*.txt
 *.aps
-CAD_DB/backend/cad_store.db
+systems/dbcad/CAD_DB/backend/cad_store.db
 
 # Local credentials and generated connection files
 *.env
@@ -68,9 +66,9 @@ neo4j_connect_info.conf
 neo4j_connect_info.config
 fastapi_connect_info.conf
 storage_bridge_connect_info.conf
-CAD_DB/pg_connect_info.conf
-CAD_DB/deploy/dbcad.local.env
-CAD_DB/deploy/*.local.env
+systems/dbcad/CAD_DB/pg_connect_info.conf
+systems/dbcad/CAD_DB/deploy/dbcad.local.env
+systems/dbcad/CAD_DB/deploy/*.local.env
 neo4j-runtime/
 neo4j-conf/
 neo4j-data/
@@ -86,7 +84,7 @@ neo4j-plugins/
 _deps/
 
 # Developer-local artifacts and runtime state
-CAD_DB/log/
+systems/dbcad/CAD_DB/log/
 .chart-data-*/
 .codex-finalizer/
 artifacts/
@@ -95,7 +93,7 @@ build.local.props
 **/.coverage
 
 # Spatial 商业许可密钥 —— 不入库（与 _deps 同级的授权材料）
-CAD_DB/spatial_license.h
+systems/dbcad/CAD_DB/spatial_license.h
 
 # ACIS 测试资产：许可密钥与构建产物不入库（SAT 样例入库供回归测试用）
 scripts/tests/acis/spatial_license.h
@@ -110,14 +108,26 @@ research/agenticcad_edit/.local/
 research/harness_study/.local/
 
 # v1 组件内容寻址资产库（后端本地数据，不入库）
-CAD_DB/backend/data/
+systems/dbcad/CAD_DB/backend/data/
 
 # macOS SDKs, license material and native build/runtime state
 2026.*_mac_m64/
 /spatial_license.h
 /.local/
 /build/
-web/test-results/
-web/playwright-report/
+systems/dbcad/web/test-results/
+systems/dbcad/web/playwright-report/
 
 /test-results/
+
+# Shared local-only policy: applies to every clone/worktree, not just info/exclude.
+# Preserve source images/static assets elsewhere; do not blanket-ignore PNG/JSON/CSV.
+**/.local/
+/docs/research/
+/output/
+/tmp/
+/research/**/output/
+/experiments/**/runs/
+/experiments/**/artifacts/
+/experiments/**/figures/
+/experiments/**/exports/

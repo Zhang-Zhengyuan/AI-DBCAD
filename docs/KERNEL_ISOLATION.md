@@ -1,6 +1,6 @@
 # 内核隔离与替换指南
 
-> 2026-10-19 头注（v3.2）：隔离边界已从"DbcadAcis 静态库"升级为 **worker 进程隔离**——ACIS 只存在于 `dbcad_worker.exe`（许可初始化 `CAD_DB/acis.cpp`，命令执行 `worker/`，网格 `kernel/`），网关与浏览器不接触内核类型。本文主体为 v2 时期（2026-10-17，基线 `ad93c4c`）的设计与 issue #4 验收记录，保留其设计取舍与迁移论证；文中 Qt/DbcadAcis/access.cpp 等结构按 `docs/history/` 同期背景理解。接入第二内核时读本文论证 + 当前 v3 边界。
+> 2026-10-19 头注（v3.2）：隔离边界已从"DbcadAcis 静态库"升级为 **worker 进程隔离**——ACIS 只存在于 `dbcad_worker.exe`（许可初始化 `systems/dbcad/CAD_DB/acis.cpp`，命令执行 `worker/`，网格 `kernel/`），网关与浏览器不接触内核类型。本文主体为 v2 时期（2026-10-17，基线 `ad93c4c`）的设计与 issue #4 验收记录，保留其设计取舍与迁移论证；文中 Qt/DbcadAcis/access.cpp 等结构按 `docs/history/` 同期背景理解。接入第二内核时读本文论证 + 当前 v3 边界。
 
 > 2026-10-18 头注：`access.cpp` 现仅保留 SAT 文件存取；`storage/`、`neo4j.cpp/hxx`、`kernel/legacy_storage.h` 已在架构 v2 清理中删除（tag：`legacy/pre-architecture-v2`），下表相关行按此理解。
 

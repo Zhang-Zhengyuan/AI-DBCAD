@@ -1,7 +1,7 @@
 # Offline regression checks; never starts Docker or a server.
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$deployRoot = Join-Path $repoRoot 'CAD_DB\deploy'
+$deployRoot = Join-Path $repoRoot 'systems\dbcad\CAD_DB\deploy'
 foreach ($name in @('filesystem', 'config', 'runtime', 'processes', 'docker')) {
     . (Join-Path $deployRoot "lib\$name.ps1")
 }
@@ -35,7 +35,7 @@ try {
     }
     $oldUri = [Environment]::GetEnvironmentVariable('CAD_DB_NEO4J_URI', 'Process')
     $oldPassword = [Environment]::GetEnvironmentVariable('CAD_DB_NEO4J_PASSWORD', 'Process')
-    Start-FastApi -ServerDir (Join-Path $repoRoot 'CAD_DB\backend') -HostAddress '127.0.0.1' -Port 18000 `
+    Start-FastApi -ServerDir (Join-Path $repoRoot 'systems\dbcad\CAD_DB\backend') -HostAddress '127.0.0.1' -Port 18000 `
         -ApiPassword 'test-api' -SkipDependencySync $true -LogDir $scratch -BackendEnvironment @{
             CAD_DB_NEO4J_URI = 'bolt://127.0.0.1:17687'
             CAD_DB_NEO4J_PASSWORD = 'test-db'
@@ -59,11 +59,11 @@ try {
     Wait-Neo4jApoc -ContainerName 'test' -User 'neo4j' -Password 'test' -Attempts 1 -DelaySeconds 0
 
     $fixture = Join-Path $scratch 'source with spaces'
-    $fixtureDeploy = Join-Path $fixture 'CAD_DB\deploy'
+    $fixtureDeploy = Join-Path $fixture 'systems\dbcad\CAD_DB\deploy'
     New-Item -ItemType Directory -Path $fixtureDeploy -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $deployRoot 'lib') -Destination $fixtureDeploy -Recurse
     Copy-Item -LiteralPath (Join-Path $deployRoot 'start_dbcad_fullstack.ps1') -Destination $fixtureDeploy
-    foreach ($relative in @('CAD_DB\backend\app\main.py', 'x64\Release\dbcad_worker.exe', 'web\dist\index.html')) {
+    foreach ($relative in @('systems\dbcad\CAD_DB\backend\app\main.py', 'x64\Release\dbcad_worker.exe', 'systems\dbcad\web\dist\index.html')) {
         $path = Join-Path $fixture $relative
         New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
         Set-Content -LiteralPath $path -Value 'fixture'
@@ -72,7 +72,7 @@ try {
     $launcher = Join-Path $fixtureDeploy 'start_dbcad_fullstack.ps1'
     & $launcher -PrepareOnly
     Assert-True (-not (Test-Path (Join-Path $fixtureDeploy 'run'))) 'PrepareOnly created runtime state.'
-    Remove-Item -LiteralPath (Join-Path $fixture 'web\dist\index.html')
+    Remove-Item -LiteralPath (Join-Path $fixture 'systems\dbcad\web\dist\index.html')
     try { & $launcher -PrepareOnly; throw 'Missing web client was accepted.' } catch {
         Assert-True ($_.Exception.Message -match '^Web client is not built') 'Missing web client was misdiagnosed.'
     }

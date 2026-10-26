@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "EXP-002",
+  "title": "跨版本证据失效预实验",
+  "status": "planned",
+  "code_paths": [],
+  "data_references": [],
+  "local_run_roots": [
+    "experiments/exp-002-evidence-validity/runs"
+  ],
+  "result_paths": [],
+  "limitations": [
+    "No implementation or new experiment execution yet",
+    "Scenarios, sample size, seed, runnable entrypoint and paid budget must be specified before execution",
+    "External literature suggestions and natural-edit-chain feasibility are unverified"
+  ]
+}

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$FastApiHost = "0.0.0.0",
     [int]$FastApiPort = 8000,
     [string]$Neo4jUri = "",
@@ -34,7 +34,8 @@ foreach ($helperName in @("filesystem", "config", "pe", "runtime", "docker", "pr
 
 $scriptRoot = Resolve-FullPath (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $projectRoot = Resolve-FullPath (Join-Path $scriptRoot "..")
-$repoRoot = Resolve-FullPath (Join-Path $projectRoot "..")
+$sourceRoot = Resolve-FullPath (Join-Path $projectRoot "..")
+$repoRoot = Resolve-FullPath (Join-Path $projectRoot "..\..\..")
 $backendRoot = Join-Path $projectRoot "backend"
 if (-not (Test-Path -LiteralPath (Join-Path $backendRoot "app\main.py"))) {
     throw "Cannot locate backend at $backendRoot. Run this script from CAD_DB\deploy."
@@ -52,8 +53,8 @@ $workerExe = Join-Path $repoRoot "x64\$Configuration\dbcad_worker.exe"
 if (-not (Test-Path -LiteralPath $workerExe -PathType Leaf)) {
     throw "Worker not found: $workerExe. Run scripts/build.ps1 -Configuration $Configuration."
 }
-if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "web\dist\index.html"))) {
-    throw "Web client is not built. From the repository root run: Push-Location web; npm ci; npm run build; Pop-Location. Then restart the launcher."
+if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot "web\dist\index.html"))) {
+    throw "Web client is not built. From the repository root run: Push-Location systems/dbcad/web; npm ci; npm run build; Pop-Location. Then restart the launcher."
 }
 
 if (-not $PSBoundParameters.ContainsKey("FastApiHost")) {

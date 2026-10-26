@@ -89,7 +89,7 @@ flowchart LR
 
 > v2 执行计划与验收记录已归档至 [history/](history/README.md)；v3 计划与各阶段验收见 [V3_PLAN.md](V3_PLAN.md)。
 
-1. **上层重建（M1/M2 已完成）**：协作编排已下沉 `CAD_DB/core/`（DocumentSession/CollabState/CollabController/CollabBackend/StorageBackend/CommandBus，仅 QtCore）；MainWindow/Qt 只剩壳；全部网络异步（无嵌套事件循环）。
+1. **上层重建（M1/M2 已完成）**：协作编排已下沉 `systems/dbcad/CAD_DB/core/`（DocumentSession/CollabState/CollabController/CollabBackend/StorageBackend/CommandBus，仅 QtCore）；MainWindow/Qt 只剩壳；全部网络异步（无嵌套事件循环）。
 2. **存储物理表示升级（M3/Phase B 已完成）**：原生标签 + 扁平字段 + 幂等迁移 + L3 结构断言；协议与客户端零改动。
 3. **协同工作流（M4.1–4.3 已完成）**：自动拉取、在场感知（edit_intent 软锁提示）、定版标签；分支 DAG（M4.4）与语义 diff（M4.5）为后续路线图。
 4. **AI native（M6 第一步已具备）**：CommandBus 提供名→schema→执行器的程序化命令入口（AI 与 UI 平级调用同一注册表）；审批流为后续工作。
