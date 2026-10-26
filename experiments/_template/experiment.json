@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "id": "EXP-NNN",
+  "title": "填写实验问题",
+  "status": "planned",
+  "code_paths": [],
+  "data_references": [],
+  "local_run_roots": ["experiments/exp-NNN-slug/runs"],
+  "result_paths": [],
+  "limitations": []
+}

@@ -28,9 +28,9 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(MSBuildProjectDirectory)\..\build.local.props" Condition="Exists('$(MSBuildProjectDirectory)\..\build.local.props')" />
+  <Import Project="$(MSBuildProjectDirectory)\..\..\..\build.local.props" Condition="Exists('$(MSBuildProjectDirectory)\..\..\..\build.local.props')" />
   <PropertyGroup>
-    <DBCADDepsRoot Condition="'$(DBCADDepsRoot)' == ''">$(MSBuildProjectDirectory)\..\_deps</DBCADDepsRoot>
+    <DBCADDepsRoot Condition="'$(DBCADDepsRoot)' == ''">$(MSBuildProjectDirectory)\..\..\..\_deps</DBCADDepsRoot>
     <!-- 默认目标 = worker；测试目标显式传入时切换源文件集。 -->
     <DBCADWorker Condition="'$(DBCADMeshTests)' != 'true' And '$(DBCADMeshBench)' != 'true'">true</DBCADWorker>
   </PropertyGroup>
@@ -100,8 +100,8 @@
     <ClCompile Include="worker\main.cpp" Condition="'$(DBCADWorker)' == 'true'" />
     <ClCompile Include="worker\session.cpp" Condition="'$(DBCADWorker)' == 'true'" />
     <ClCompile Include="worker\entity_graph_codec.cpp" Condition="'$(DBCADWorker)' == 'true'" />
-    <ClCompile Include="..\scripts\tests\mesh_tests.cpp" Condition="'$(DBCADMeshTests)' == 'true'" />
-    <ClCompile Include="..\scripts\tests\mesh_bench.cpp" Condition="'$(DBCADMeshBench)' == 'true'" />
+    <ClCompile Include="..\..\..\scripts\tests\mesh_tests.cpp" Condition="'$(DBCADMeshTests)' == 'true'" />
+    <ClCompile Include="..\..\..\scripts\tests\mesh_bench.cpp" Condition="'$(DBCADMeshBench)' == 'true'" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="acis.hxx" />
@@ -115,16 +115,16 @@
     <ClInclude Include="worker\entity_graph_codec.h" />
   </ItemGroup>
   <PropertyGroup>
-    <OutDir>$(MSBuildProjectDirectory)\..\x64\$(Configuration)\</OutDir>
+    <OutDir>$(MSBuildProjectDirectory)\..\..\..\x64\$(Configuration)\</OutDir>
     <!-- InterOp 运行时 DLL（STEP 转换器链）随构建暂存到输出目录 -->
     <PostBuildEvent Condition="Exists('$(DBCADDepsRoot)\interop\bin')">
-      <Command>xcopy /E /I /Y /D "$(DBCADDepsRoot)\interop\bin\*" "$(MSBuildProjectDirectory)\..\x64\$(Configuration)"</Command>
+      <Command>xcopy /E /I /Y /D "$(DBCADDepsRoot)\interop\bin\*" "$(MSBuildProjectDirectory)\..\..\..\x64\$(Configuration)"</Command>
     </PostBuildEvent>
-    <IntDir Condition="'$(DBCADMeshTests)' == 'true'">$(MSBuildProjectDirectory)\..\x64\obj\MeshTests\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(DBCADMeshTests)' == 'true'">$(MSBuildProjectDirectory)\..\..\..\x64\obj\MeshTests\$(Configuration)\</IntDir>
     <TargetName Condition="'$(DBCADMeshTests)' == 'true'">mesh_tests</TargetName>
-    <IntDir Condition="'$(DBCADMeshBench)' == 'true'">$(MSBuildProjectDirectory)\..\x64\obj\MeshBench\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(DBCADMeshBench)' == 'true'">$(MSBuildProjectDirectory)\..\..\..\x64\obj\MeshBench\$(Configuration)\</IntDir>
     <TargetName Condition="'$(DBCADMeshBench)' == 'true'">mesh_bench</TargetName>
-    <IntDir Condition="'$(DBCADWorker)' == 'true' And '$(DBCADMeshTests)' != 'true' And '$(DBCADMeshBench)' != 'true'">$(MSBuildProjectDirectory)\..\x64\obj\Worker\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(DBCADWorker)' == 'true' And '$(DBCADMeshTests)' != 'true' And '$(DBCADMeshBench)' != 'true'">$(MSBuildProjectDirectory)\..\..\..\x64\obj\Worker\$(Configuration)\</IntDir>
     <TargetName Condition="'$(DBCADWorker)' == 'true' And '$(DBCADMeshTests)' != 'true' And '$(DBCADMeshBench)' != 'true'">dbcad_worker</TargetName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

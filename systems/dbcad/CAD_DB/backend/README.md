@@ -32,9 +32,9 @@ uv sync --frozen
 uv run --frozen uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-worker（`x64/<Configuration>/dbcad_worker.exe`）由 FastAPI 的 GeometryPool 按项目自动拉起，一个项目一个进程；路径由环境变量配置。全栈部署使用 `CAD_DB/deploy/start_dbcad_fullstack.cmd`。
+worker（`x64/<Configuration>/dbcad_worker.exe`）由 FastAPI 的 GeometryPool 按项目自动拉起，一个项目一个进程；路径由环境变量配置。全栈部署使用 `systems/dbcad/CAD_DB/deploy/start_dbcad_fullstack.cmd`。
 
-macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_DB_WORKER_EXE` 覆盖。Mac 原生环境使用根目录 `DBCAD.command` 启动，详见 [macOS 指南](../../docs/MACOS.md)。
+macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_DB_WORKER_EXE` 覆盖。Mac 原生环境使用根目录 `DBCAD.command` 启动，详见 [macOS 指南](../../../../docs/MACOS.md)。
 
 ## 协议（/api/v1）
 
@@ -51,8 +51,8 @@ macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_D
 
 HTTP 鉴权头为 `X-API-Password`，WS 使用 password 查询参数。部署默认生成非空密码；独立开发的空密码行为保留，管理界面要求设置密码。模式、事件字段和 base_version 是协议约定。
 
-装配位于 app/main.py；模块边界见 [架构说明](../../docs/ARCHITECTURE.md)。静态资源随 app/ 打包，不依赖源码工作目录。v2 的 json-delta/WS 模型提交协议已随 Qt 客户端移除，历史见 [docs/history/](../../docs/history/README.md)。
+装配位于 app/main.py；模块边界见 [架构说明](../../../../docs/ARCHITECTURE.md)。静态资源随 app/ 打包，不依赖源码工作目录。v2 的 json-delta/WS 模型提交协议已随 Qt 客户端移除，历史见 [docs/history/](../../../../docs/history/README.md)。
 
 ## 可选 AI 编辑
 
-原生 AI 预览/应用 API 在 `app/api/v1/ai.py`，配置与限制见 [研究运行说明](../../research/harness_study/README.md)。`GET /api/v1/ai/status` 查询可用性；`POST /projects/{id}/ai/jobs` 接收 instruction、必填 base_version（空项目为 null）、selected；任务查询/停止/应用位于 `/ai/jobs/{job_id}`、`/cancel`、`/apply`。这些入口使用同样的 API 鉴权。预览过程不发布版本，应用严格拒绝过期 base，成功后仍可使用既有 undo/redo。配置关闭与未准备研究渲染环境时基础 API 保持兼容。任务保存在单 API 进程内；当前部署使用单 worker。
+原生 AI 预览/应用 API 在 `app/api/v1/ai.py`，配置与限制见 [研究运行说明](../../../../research/harness_study/README.md)。`GET /api/v1/ai/status` 查询可用性；`POST /projects/{id}/ai/jobs` 接收 instruction、必填 base_version（空项目为 null）、selected；任务查询/停止/应用位于 `/ai/jobs/{job_id}`、`/cancel`、`/apply`。这些入口使用同样的 API 鉴权。预览过程不发布版本，应用严格拒绝过期 base，成功后仍可使用既有 undo/redo。配置关闭与未准备研究渲染环境时基础 API 保持兼容。任务保存在单 API 进程内；当前部署使用单 worker。

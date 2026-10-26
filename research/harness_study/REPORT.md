@@ -1,5 +1,7 @@
 # InferraCAD 本轮实验报告
 
+> 归档说明（2026-10-26）：实验登记与精选文本指标见 [EXP-001](../../experiments/exp-001-three-harness/README.md)。下列图片/PDF为本地忽略产物，克隆不会携带；原始结果和评分口径未修改。
+
 2026-10-25 · 原生 AI 编辑接入与三 harness 对照 · 本机 Mac ARM64
 
 ## 1. 本轮交付和结论边界

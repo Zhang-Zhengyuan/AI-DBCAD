@@ -303,7 +303,7 @@ def aggregate(run, allow_incomplete=False):
                 HERE / "audit_proxy.py",
                 HERE / "summarize.py",
                 HERE.parent / "agenticcad_edit/uv.lock",
-                HERE.parents[1] / "CAD_DB/backend/app/ai_budget.py",
+                HERE.parents[1] / "systems/dbcad/CAD_DB/backend/app/ai_budget.py",
             ]
         },
         "plan": plan,

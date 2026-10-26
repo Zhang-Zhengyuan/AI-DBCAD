@@ -6,7 +6,7 @@ $missing = @()
 foreach ($relative in @('acis\include\api.hxx', 'acis\lib\SPAAcisDs.lib', 'acis\lib\SPAAcisDsd.lib', 'acis\bin\SPAAcisDs.dll', 'acis\bin\SPAAcisDsd.dll', 'glfw\lib\glfw3_64.lib')) {
     if (-not (Test-Path -LiteralPath (Join-Path $DepsRoot $relative))) { $missing += "Dependency: $relative" }
 }
-if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'CAD_DB\spatial_license.h'))) { $missing += 'CAD_DB/spatial_license.h: matching 2026 license header required; see docs/LOCAL_SETUP.md' }
+if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'systems\dbcad\CAD_DB\spatial_license.h'))) { $missing += 'systems/dbcad/CAD_DB/spatial_license.h: matching 2026 license header required; see docs/LOCAL_SETUP.md' }
 foreach ($tool in @('uv', 'docker')) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { $missing += "PATH: $tool" }
 }

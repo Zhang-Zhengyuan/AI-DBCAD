@@ -24,7 +24,7 @@ from app.worker_client import SubprocessWorkerGateway, set_worker_gateway
 
 pytestmark = pytest.mark.integration
 
-_REPO = Path(__file__).resolve().parents[3]
+_REPO = Path(__file__).resolve().parents[5]
 WORKER = Path(settings.worker_exe)
 SAT_FIXTURES = list((_REPO / "scripts" / "tests" / "acis").glob("*.sat"))[:1]
 

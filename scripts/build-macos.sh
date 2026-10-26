@@ -14,10 +14,10 @@ IOP_BIN="$IOP/macos_m64/code/bin"
 for required in "$ACIS/include/kernapi.hxx" "$ACIS_BIN/libSpaACIS.dylib" "$IOP/include/SPAIDocument.h" "$IOP_BIN/libSPAIInterop.dylib" "$ROOT/_deps/vendor/nlohmann/json.hpp"; do
     [[ -f "$required" ]] || { echo "Missing dependency: $required" >&2; exit 1; }
 done
-if [[ ! -f "$ROOT/CAD_DB/spatial_license.h" && -f "$ROOT/spatial_license.h" ]]; then
-    cp "$ROOT/spatial_license.h" "$ROOT/CAD_DB/spatial_license.h"
+if [[ ! -f "$ROOT/systems/dbcad/CAD_DB/spatial_license.h" && -f "$ROOT/spatial_license.h" ]]; then
+    cp "$ROOT/spatial_license.h" "$ROOT/systems/dbcad/CAD_DB/spatial_license.h"
 fi
-[[ -f "$ROOT/CAD_DB/spatial_license.h" ]] || { echo 'Missing CAD_DB/spatial_license.h' >&2; exit 1; }
+[[ -f "$ROOT/systems/dbcad/CAD_DB/spatial_license.h" ]] || { echo 'Missing systems/dbcad/CAD_DB/spatial_license.h' >&2; exit 1; }
 mkdir -p "$SDK_INCLUDE/acis" "$OUT"
 # Keep the Mac header layout separate from a possible Windows TeamKit in _deps.
 ln -sfn "$ACIS/include" "$SDK_INCLUDE/acis/include"
@@ -54,8 +54,8 @@ done
 for item in resources reffiles; do
     [[ ! -d "$IOP/macos_m64/$item" ]] || ln -sfn "$IOP/macos_m64/$item" "$OUT/$item"
 done
-FLAGS=(-std=c++20 -stdlib=libc++ -arch arm64 -mmacosx-version-min=13.3 -DSPA_NO_AUTO_LINK "${OPT[@]}" -I"$ROOT/CAD_DB" -I"$SDK_INCLUDE" -I"$ROOT/_deps" -I"$IOP/include")
-SOURCES=(CAD_DB/acis.cpp CAD_DB/common.cpp CAD_DB/kernel/mesh_extractor.cpp CAD_DB/kernel/glb_writer.cpp CAD_DB/worker/main.cpp CAD_DB/worker/session.cpp CAD_DB/worker/entity_graph_codec.cpp)
+FLAGS=(-std=c++20 -stdlib=libc++ -arch arm64 -mmacosx-version-min=13.3 -DSPA_NO_AUTO_LINK "${OPT[@]}" -I"$ROOT/systems/dbcad/CAD_DB" -I"$SDK_INCLUDE" -I"$ROOT/_deps" -I"$IOP/include")
+SOURCES=(systems/dbcad/CAD_DB/acis.cpp systems/dbcad/CAD_DB/common.cpp systems/dbcad/CAD_DB/kernel/mesh_extractor.cpp systems/dbcad/CAD_DB/kernel/glb_writer.cpp systems/dbcad/CAD_DB/worker/main.cpp systems/dbcad/CAD_DB/worker/session.cpp systems/dbcad/CAD_DB/worker/entity_graph_codec.cpp)
 OBJECTS=()
 for source in "${SOURCES[@]}"; do
     object="$OUT/${source//\//_}.o"

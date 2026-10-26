@@ -4,7 +4,7 @@ v3 架构（V3_PLAN P7 起）：**浏览器是唯一客户端**。启动 Neo4j �
 （`/api/v1` + `/web` 静态托管 Web 客户端 + `/webui` Neo4j 管理台），几何
 计算在服务端 C++ worker（默认 `x64/Release/dbcad_worker.exe`，可传
 `-Configuration Debug`）。Qt 客户端与 C++ Bridge 已移除。首次环境准备见
-[新成员指南](../docs/GETTING_STARTED.md)。
+[新成员指南](../../../docs/GETTING_STARTED.md)。
 
 统一部署入口：
 
@@ -14,7 +14,7 @@ v3 架构（V3_PLAN P7 起）：**浏览器是唯一客户端**。启动 Neo4j �
 
 启动链路：Neo4j 容器 → FastAPI → 打开浏览器 `/web/`。默认端口 8000，已有
 `dbcad.local.env` 可覆盖端口；使用启动器打印的 `Web client` 地址并输入
-`DBCAD_PASSWORD` 登录。构建与重启步骤见[上手指南](../docs/GETTING_STARTED.md#修改代码后重新运行)。
+`DBCAD_PASSWORD` 登录。构建与重启步骤见[上手指南](../../../docs/GETTING_STARTED.md#修改代码后重新运行)。
 worker 由 FastAPI 按需拉起（GeometryPool 每项目一进程），无需手工启动；
 构建入口 `scripts/build.ps1`（解决方案默认目标即 `dbcad_worker.exe`）。
 
@@ -39,7 +39,7 @@ worker 由 FastAPI 按需拉起（GeometryPool 每项目一进程），无需手
 唯一可编辑密码源：
 
 ```text
-CAD_DB\deploy\dbcad.local.env
+systems\dbcad\CAD_DB\deploy\dbcad.local.env
 ```
 
 首次运行启动器时会自动创建这个文件，并生成一个强密码：
@@ -112,7 +112,7 @@ http://127.0.0.1:8000/webui   Neo4j 管理台（V1 模型 + 实体投影浏览�
 
 | 参数 | 用途 |
 |---|---|
-| `-ConfigPath` | 指定统一配置文件，默认 `CAD_DB\deploy\dbcad.local.env` |
+| `-ConfigPath` | 指定统一配置文件，默认 `systems\dbcad\CAD_DB\deploy\dbcad.local.env` |
 | `-ResetNeo4jDockerData` | 删除并重建本地 Neo4j 容器与 `neo4j-runtime` 数据；仅限明确允许丢弃数据时使用 |
 | `-Configuration` | 选择 Release（默认）或 Debug worker；与构建配置一致 |
 | `-PrepareOnly` | 只检查 worker、Web 构建及本机配置；不启停服务、不连接数据库 |
@@ -128,7 +128,7 @@ http://127.0.0.1:8000/webui   Neo4j 管理台（V1 模型 + 实体投影浏览�
 
 1. 按依赖文档准备 ACIS SDK，运行 `scripts/build.ps1 -Configuration Release`
    构建 worker 并暂存运行时。
-2. 执行一次启动器，让它创建或迁移 `CAD_DB\deploy\dbcad.local.env`。
+2. 执行一次启动器，让它创建或迁移 `systems\dbcad\CAD_DB\deploy\dbcad.local.env`。
 3. 正常启动（无需重置）：`.\CAD_DB\deploy\start_dbcad_fullstack.cmd`
 4. 用两个独立浏览器会话访问启动器打印的同一地址，输入密码并打开同一项目，
-   即可验证实时协作；具体步骤和修改代码后的重启流程见[上手指南](../docs/GETTING_STARTED.md#修改代码后重新运行)。
+   即可验证实时协作；具体步骤和修改代码后的重启流程见[上手指南](../../../docs/GETTING_STARTED.md#修改代码后重新运行)。

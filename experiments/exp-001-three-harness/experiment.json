@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "id": "EXP-001",
+  "title": "三 harness 单请求编辑初步对照",
+  "status": "completed",
+  "code_paths": [
+    "research/harness_study",
+    "research/agenticcad_edit",
+    "research/neuralcad_edit"
+  ],
+  "data_references": [
+    {
+      "name": "neuralCAD-Edit edit_192_external",
+      "location": "research/neuralcad_edit/.local/data/edit_192_external",
+      "license": "CC BY-NC 4.0",
+      "version_record": "research/neuralcad_edit/VALIDATION.md"
+    }
+  ],
+  "seed": 202610251,
+  "upstream_commits": {
+    "neuralcad": "68d1acceda0743e364f45fb7823f7cf39c530ba5",
+    "agentic": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+    "itercad": "55998c4a4537573f67ca241dedc52ee2840652ca"
+  },
+  "local_run_roots": [
+    "research/harness_study/.local",
+    "research/harness_study/output"
+  ],
+  "result_paths": [
+    "experiments/exp-001-three-harness/results/episodes.csv",
+    "experiments/exp-001-three-harness/results/results.json",
+    "experiments/exp-001-three-harness/results/protocol.json",
+    "experiments/exp-001-three-harness/results/native-validation.json",
+    "experiments/exp-001-three-harness/results/manifest.json"
+  ],
+  "limitations": [
+    "Single-request editing, not continual editing or stale-evidence evaluation",
+    "VLM proxy is not expert acceptance; two proxy-positive cases flagged in post-hoc audit",
+    "Provider alias does not verify model weight revision",
+    "Historical protocol JSON retains original NaN values"
+  ]
+}

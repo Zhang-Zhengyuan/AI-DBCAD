@@ -29,7 +29,7 @@ _deps/
 - 链接 `SPAAcisDs.lib`（Release）/ `SPAAcisDsd.lib`（Debug），已写入 `CAD_DB.vcxproj`。
 - 必须定义宏 `SPA_NO_AUTO_LINK`：官方 `dcl_*.h` 头内的 `#pragma comment(lib, "SpaACIS.lib")`
   自动链接指向旧单体库名，与 `SPAAcisDs` 组件库不匹配，会引发 LNK1104。
-- 许可密钥来自 `CAD_DB/spatial_license.h`（配套 2026 版密钥，由维护者提供，不入库）；
+- 许可密钥来自 `systems/dbcad/CAD_DB/spatial_license.h`（配套 2026 版密钥，由维护者提供，不入库）；
   `acis.cpp` 的 `unlock_license()` 在 `api_start_modeller` 之后调用 `spa_unlock_products`。
 - 运行时 CRT 必须为 `/MD`（MultiThreadedDLL）：向 ACIS API 传 `FILE*` 时，
   调用方与 DLL 必须共享同一动态 CRT，混用静态 CRT 会在 `ftelli64` 处触发
@@ -40,6 +40,6 @@ _deps/
 
 C++ 使用 v143 与 C++23（v3 起 Qt-free，P7 已移除 Qt 依赖）。给其他机器分发 worker 使用 Release，并安装 Microsoft Visual C++ 2015–2022 x64 Redistributable。
 
-Python 使用 `CAD_DB/backend/pyproject.toml` 与 `uv.lock`。`requirements.txt` 仅保留直接依赖兼容入口，不承诺传递依赖版本一致；可复现环境统一使用 `uv sync --frozen`。
+Python 使用 `systems/dbcad/CAD_DB/backend/pyproject.toml` 与 `uv.lock`。`requirements.txt` 仅保留直接依赖兼容入口，不承诺传递依赖版本一致；可复现环境统一使用 `uv sync --frozen`。
 
 本机迁移配置、启动入口及实际测试限制v2 时期的本机 Qt 迁移配置见 [history/LOCAL_SETUP.md](history/LOCAL_SETUP.md)（已归档）。Debug 与 Release 都使用 /MD 运行时（ACIS 官方要求），Debug 仍保留完整符号及禁用优化。

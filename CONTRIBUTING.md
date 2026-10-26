@@ -2,7 +2,7 @@
 
 先阅读 [AGENTS.md](AGENTS.md)、[团队 Git 工作流](docs/ai/WORKFLOW.md)，再按任务阅读 docs/GETTING_STARTED.md 与 docs/ARCHITECTURE.md。
 
-所有实现先关联真实 Issue，再创建 `type/issue-number-summary` 分支（例如 `fix/123-pull-conflict`），验证后提 PR。PR 正文单独写 `Closes #123`，至少一位人类维护者批准后由维护者合并；禁止直接推送主分支和 agent 自行合并。离线仅允许本地草稿准备，不能伪造 Issue 编号。
+先按 [收录规则](docs/REPOSITORY_LAYOUT.md) 判断是否需要纳入 Git。只读调查、已有实验运行、开题写作与 PPT/图片/PDF 导出默认仅本地，不自动创建 Issue、分支或 PR。可共享变更先关联真实 Issue，再创建 `type/issue-number-summary` 分支；需要远端协作时验证后提 PR。PR 正文单独写 `Closes #123`，至少一位人类维护者批准后由维护者合并；禁止直接推送主分支和 agent 自行合并。离线仅允许本地草稿准备，不能伪造 Issue 编号。
 
 Agent 上下文：[项目地图](docs/ai/PROJECT_CONTEXT.md) · [验证矩阵](docs/ai/VALIDATION.md) · [管理员启用保护](docs/ai/MAINTAINER_SETUP.md)。规则修改也走同一流程；历史 PR_CHECKLIST 是旧重构记录，不替代当前通用 PR 模板。
 

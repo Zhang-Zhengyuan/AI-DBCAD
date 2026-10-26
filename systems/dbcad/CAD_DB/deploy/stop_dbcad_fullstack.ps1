@@ -95,7 +95,7 @@ if ([string]::IsNullOrWhiteSpace($PackageRoot)) {
         $PackageRoot = $deployRoot
     } else {
         $projectRoot = Resolve-FullPath (Join-Path $deployRoot "..")
-        $repoRoot = Resolve-FullPath (Join-Path $projectRoot "..")
+        $repoRoot = Resolve-FullPath (Join-Path $projectRoot "..\..\..")
         $PackageRoot = Join-Path $repoRoot "dist\DBCAD-fullstack-package"
     }
 }

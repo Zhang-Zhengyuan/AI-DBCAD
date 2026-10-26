@@ -4,7 +4,7 @@
     [string]$RuntimeDir = $env:DBCAD_RUNTIME_DIR
 )
 # v3 worker 构建（V3_PLAN P7：Qt 客户端退役，sln 默认目标 dbcad_worker）。
-# 测试目标：msbuild CAD_DB/CAD_DB.vcxproj /p:DBCADMeshTests=true（mesh_tests 回归门禁）。
+# 测试目标：msbuild systems/dbcad/CAD_DB/CAD_DB.vcxproj /p:DBCADMeshTests=true（mesh_tests 回归门禁）。
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $localProps = Join-Path $repoRoot 'build.local.props'
@@ -15,8 +15,8 @@ if (Test-Path -LiteralPath $localProps) {
     }
 }
 if (-not $DepsRoot) { $DepsRoot = Join-Path $repoRoot '_deps' }
-if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'CAD_DB\spatial_license.h'))) {
-    throw 'Missing CAD_DB/spatial_license.h. Download the matching 2026 license header from your authorized Spatial account or obtain it from your license administrator. See docs/LOCAL_SETUP.md.'
+if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'systems\dbcad\CAD_DB\spatial_license.h'))) {
+    throw 'Missing systems/dbcad/CAD_DB/spatial_license.h. Download the matching 2026 license header from your authorized Spatial account or obtain it from your license administrator. See docs/LOCAL_SETUP.md.'
 }
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 $msbuildCommand = Get-Command MSBuild.exe -ErrorAction SilentlyContinue

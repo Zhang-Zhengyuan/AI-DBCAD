@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "experiment_id": "EXP-001",
+  "source_run_id": "primary-20261025-022103",
+  "source_git_commit": "c832f2fb9d64fa7f0c61f10a86e64377a798b6b0",
+  "source_directory": "research/harness_study/output",
+  "generation_commands": [
+    "research/harness_study/run.sh summarize",
+    "research/agenticcad_edit/.local/venv/bin/python research/harness_study/audit_proxy.py"
+  ],
+  "archive_note": "Existing tracked text snapshots copied byte-for-byte on 2026-10-26; no experiment rerun. Historical implementation hashes keep their original paths.",
+  "files": [
+    {
+      "path": "experiments/exp-001-three-harness/results/episodes.csv",
+      "sha256": "de83743f0099452f64f61df350de22f27e011ad0befdcfb25ce99c34eb7fa7ac"
+    },
+    {
+      "path": "experiments/exp-001-three-harness/results/results.json",
+      "sha256": "265ae9aea5640144ece143dbf3320787208a284280a5d97eefc49c9b1dc2627f"
+    },
+    {
+      "path": "experiments/exp-001-three-harness/results/protocol.json",
+      "sha256": "8d1d5bb9e8cbd1d4a45493c686f9504bc684a328180a20795f26208216f9a062"
+    },
+    {
+      "path": "experiments/exp-001-three-harness/results/native-validation.json",
+      "sha256": "e8818bf465ef234908f084b42f1643c3767ae10bff83878d42fc3c206cba1402"
+    }
+  ],
+  "generation_note": "These are the existing export entrypoints, not commands rerun during this archive operation."
+}
