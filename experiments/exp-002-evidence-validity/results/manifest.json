@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "experiment_id": "EXP-002",
+  "source_run_id": "20261026-agentic-v1-s20261026",
+  "source_git_commit": "d1774e0f0f89f21386b5b716e3739a8bdf8a8659",
+  "upstream_git_commit": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+  "source_directory": "experiments/exp-002-evidence-validity/runs/20261026-agentic-v1-s20261026",
+  "frozen_run_sha256": "af1ee776be020651462bcff0ccedea6c30deab46ef67ced12ba8938e287505b8",
+  "generation_commands": [
+    "research/agenticcad_edit/.local/venv/bin/python experiments/exp-002-evidence-validity/analyze.py --run experiments/exp-002-evidence-validity/runs/20261026-agentic-v1-s20261026",
+    "Selected JSON/CSV copied after all paid calls completed; raw requests/responses/STEP/images/ledger/report remain local"
+  ],
+  "raw_integrity": {
+    "budget_json_sha256": "0bd469886323c46c8934f81a74f87c45c9a168680eb4a1c69365dab525163815",
+    "freeze_json_sha256": "af93c3016983130b631b1eb53c856b131348e222631d698234e728d79e5fee13",
+    "annotations_sha256": "c82876b6430ccb53146f3892598fccdf22ce077043e42d1cf02f1413b158356b",
+    "trials_csv_sha256": "2d8ebb6488ca32208623cfb94613d424b66d4be72a186e21582314c8eec64516"
+  },
+  "utility_source_hashes": {
+    "probe.py": "eba17fba80b10a518bb77b0eacf79770603e3b98ed4ba234cf5c57c8349d6d46",
+    "figures.py": "2ee637a2ea7ae6c877739bbfdfbf3accdf30b98ac6ecb8c36a007a4dc9047d78",
+    "test_pilot.py": "6824da25742dad40537fe0156287232b42881dfb281193b679735e626b73386e"
+  },
+  "scope": "Adapted frozen checkpoints; final and intermediate outcomes distinct; one model alias; no proposed method validation",
+  "files": [
+    {
+      "path": "experiments/exp-002-evidence-validity/results/annotations.json",
+      "sha256": "c82876b6430ccb53146f3892598fccdf22ce077043e42d1cf02f1413b158356b"
+    },
+    {
+      "path": "experiments/exp-002-evidence-validity/results/diagnostics.json",
+      "sha256": "892e0648c6dc4e3d3360de5600aedc72789d266c4f43f85a787f53e16bd9d809"
+    },
+    {
+      "path": "experiments/exp-002-evidence-validity/results/frozen-protocol.json",
+      "sha256": "92824ad10994f046ebdc23efae0d1c76aaded7c0f951f3a7861112fcc7350170"
+    },
+    {
+      "path": "experiments/exp-002-evidence-validity/results/summary.json",
+      "sha256": "2d08de6343731d6081a364acfdea2f500cdcff112c1934ff106d5caa45d4ef9d"
+    },
+    {
+      "path": "experiments/exp-002-evidence-validity/results/trials.csv",
+      "sha256": "e89702c0b38b302930927600a28bb6895673b3ee38fbcdf21aaec059830a2b7a"
+    }
+  ],
+  "normalization": "Shared trials.csv uses LF line endings; raw run CSV is preserved byte-for-byte with its own hash."
+}
