@@ -170,3 +170,24 @@ body {
 .ai-trace ol { padding-left: 20px; }
 .ai-trace pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 10px/1.5 monospace; max-height: 160px; overflow: auto; }
 .ai-error { color: #ffb0b0; overflow-wrap: anywhere; }
+
+/* AI 面板：接口与模型设置、参考图片（EXP-003 后用户交互层） */
+.ai-settings > summary { cursor: pointer; color: var(--text-dim); margin: 4px 0; }
+.ai-settings-body { margin: 6px 0 2px; }
+.ai-settings-body label { display: block; margin-top: 6px; }
+.ai-settings-body input, .ai-settings-body select {
+  margin-left: 6px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font: inherit; }
+.ai-settings-body details { margin-top: 8px; }
+.ai-settings-body details summary { cursor: pointer; color: var(--text-dim); }
+.ai-settings-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.ai-images { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; align-items: center; }
+.ai-image-chip { position: relative; display: inline-block; }
+.ai-image-chip img { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
+.ai-image-chip button {
+  position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; line-height: 1;
+  border-radius: 50%; padding: 0; background: var(--border); color: var(--text); border: none; cursor: pointer; }
+.ai-image-add {
+  border: 1px dashed var(--border); border-radius: 6px; padding: 8px 12px;
+  cursor: pointer; color: var(--text-dim); user-select: none; }
+.ai-image-add:hover { border-color: var(--text-dim); }

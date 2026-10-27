@@ -99,7 +99,24 @@ export const userName =
 
 export interface AIStatus {
   enabled: boolean; model: string | null;
+  framework?: string; framework_label?: string;
   budget: { charged_or_reserved_cny: number; limit_cny: number } | null;
+}
+export interface ProviderModelEntry {
+  vlm?: boolean | null; probe_error?: string | null; probed_at?: number;
+  input_cny_per_million?: number; output_cny_per_million?: number; context_tokens?: number;
+}
+export interface AIProvider {
+  id: string; label: string; base_url: string; created: number | null;
+  budget_limit_cny: number | null; key_hint: string; editable: boolean;
+  models: Record<string, ProviderModelEntry>; default_model?: string | null;
+}
+export interface ProviderModel {
+  id: string; vlm: boolean | null; probe_error: string | null;
+  pricing: { input_cny_per_million: number; output_cny_per_million: number; context_tokens: number } | null;
+}
+export interface AIStartExtra {
+  parent_job_id?: string; images?: string[]; provider_id?: string; model?: string;
 }
 export interface AIJob {
   id: string; project_id: string; base_version: number | null;
@@ -112,8 +129,16 @@ export interface AIJob {
 
 export const api = {
   aiStatus: () => request<AIStatus>("/api/v1/ai/status"),
-  aiStart: (id: string, instruction: string, base_version: number | null, selected: string[]) =>
-    request<AIJob>(`/api/v1/projects/${id}/ai/jobs`, { method: "POST", body: JSON.stringify({instruction, base_version, selected}) }),
+  aiProviders: () => request<{ providers: AIProvider[] }>("/api/v1/ai/providers"),
+  aiSaveProvider: (payload: { id?: string; label?: string; base_url: string; api_key?: string; budget_limit_cny?: number }) =>
+    request<AIProvider>("/api/v1/ai/providers", { method: "PUT", body: JSON.stringify(payload) }),
+  aiModels: (pid: string) => request<{ models: ProviderModel[] }>(`/api/v1/ai/providers/${pid}/models`),
+  aiProbe: (pid: string, model: string) =>
+    request<{ model: string; vlm: boolean; probe_error?: string | null }>(`/api/v1/ai/providers/${pid}/models/${encodeURIComponent(model)}/probe`, { method: "POST" }),
+  aiModelPricing: (pid: string, model: string, pricing: { input_cny_per_million: number; output_cny_per_million: number; context_tokens?: number }) =>
+    request(`/api/v1/ai/providers/${pid}/models/${encodeURIComponent(model)}`, { method: "PUT", body: JSON.stringify(pricing) }),
+  aiStart: (id: string, instruction: string, base_version: number | null, selected: string[], extra?: AIStartExtra) =>
+    request<AIJob>(`/api/v1/projects/${id}/ai/jobs`, { method: "POST", body: JSON.stringify({ instruction, base_version, selected, ...extra }) }),
   aiJob: (id: string, job: string) => request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}`),
   aiCancel: (id: string, job: string) => request<AIJob>(`/api/v1/projects/${id}/ai/jobs/${job}/cancel`, {method: "POST"}),
   aiResume: (id: string, job: string, instruction: string) =>
