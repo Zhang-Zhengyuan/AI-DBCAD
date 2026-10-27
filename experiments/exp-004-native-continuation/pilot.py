@@ -229,7 +229,7 @@ class Runner:
             raise FileExistsError("Paid prefix already exists; never rerun it silently")
         folder.mkdir(parents=True)
         s = spec(family)
-        project = get_v1_store().create_project("EXP004 prefix " + family).id
+        project = get_v1_store().create_project("EXP004 " + model["label"] + " prefix " + family).id
         for name, params in initial_commands(s):
             await self.host(project,{"action":"component.create","params":params},name)
         initial = list(get_v1_store().latest(project).components)
@@ -284,7 +284,7 @@ class Runner:
         s = spec(family)
         if event == "E2":
             s["threshold"] = 2.0
-        project = get_v1_store().create_project(f"EXP004 {family}-{event}-{policy}").id
+        project = get_v1_store().create_project(f"EXP004 {model['label']} {family}-{event}-{policy}").id
         parts = [SceneComponent(**c) for c in prefix["manifest"]]
         for version in sorted(prefix["versions"],key=lambda v:v["number"]):
             get_v1_store().commit_version(project,message=version["message"],author="EXP004 exact prefix fork",

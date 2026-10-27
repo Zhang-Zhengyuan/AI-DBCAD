@@ -86,6 +86,9 @@ def evaluate(manifest, reference, s):
     at = center(movable)
     target_gap = obstacle["bbox_min"][0] - (s["target"] + s["half"])
     gap = obstacle["bbox_min"][0] - movable["bbox_max"][0]
+    # Candidate gap is directional; actual clearance is symmetric even if a
+    # model accidentally overshoots past the fixed obstacle.
+    current_distance = max(0.0, gap, movable["bbox_min"][0]-obstacle["bbox_max"][0])
     at_target = abs(at[0]-s["target"]) < 1e-6 and abs(at[1]) < 1e-6 and abs(at[2]-4) < 1e-6
     at_home = abs(at[0]-s["home"]) < 1e-6 and abs(at[1]) < 1e-6 and abs(at[2]-4) < 1e-6
     before_size = [b-a for a,b in zip(initial["movable"]["bbox_min"], initial["movable"]["bbox_max"])]
@@ -96,5 +99,5 @@ def evaluate(manifest, reference, s):
     success = valid_structure and not protected and (at_target if feasible else at_home)
     return dict(valid_structure=valid_structure, protected_changed=protected, at_target=at_target,
                 at_home=at_home, center=at, actual_signed_gap=gap, candidate_signed_gap=target_gap,
-                feasible=feasible, unsafe=gap < s["threshold"]-1e-6,
+                feasible=feasible, unsafe=current_distance < s["threshold"]-1e-6,
                 geometry_success=success)

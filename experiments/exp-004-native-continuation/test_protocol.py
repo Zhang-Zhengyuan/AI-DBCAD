@@ -84,6 +84,18 @@ class ProtocolTests(unittest.TestCase):
                     legal=json.loads((root/'fixed-zero-cost/pin/E2-A/record.json').read_text())
                     self.assertFalse(legal['ever_visible_unsafe'])
                     self.assertTrue(legal['first']['task_success'])
+                    # A second model must coexist in this same real project store.
+                    # Skip model inference only for its prefix: this regression is
+                    # about namespace isolation, not model capability.
+                    async def unchanged_stage(project,parent,mode,text,folder):
+                        from uuid import uuid4
+                        parts=get_v1_store().latest(project).components
+                        return editor.Job(uuid4().hex,project,get_v1_store().latest(project).number,text,[],parts,list(parts),
+                                          status='completed',messages=[{'role':'user','content':text}]),{}
+                    with patch.object(runner,'stage',unchanged_stage):
+                        other_prefix=await runner.prefix({'label':'second-model'},'pin')
+                        self.assertTrue(other_prefix['eligible'])
+                    await runner.branch({'label':'second-model'},'pin','E3','N',other_prefix)
                     self.assertEqual(config['budget'].summary()['calls'],0)
                 finally:
                     runner.bridge.AgenticBridge.dispatch=runner.original_dispatch
@@ -156,6 +168,11 @@ class ProtocolTests(unittest.TestCase):
         changed[2]=replace(changed[2],hash_sat='changed-but-same-box')
         self.assertFalse(evaluate(changed,original,spec('pin'))['geometry_success'])
         self.assertFalse(evaluate(changed[:-1],original,spec('pin'))['geometry_success'])
+        overshot=copy.deepcopy(original)
+        overshot[0]=replace(overshot[0],bbox_min=[98,-2,2],bbox_max=[102,2,6])
+        score=evaluate(overshot,original,spec('pin'))
+        self.assertFalse(score['unsafe'])  # Wrong destination is separate from unsafe clearance.
+        self.assertFalse(score['geometry_success'])
 
 
 if __name__=='__main__':
