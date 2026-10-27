@@ -54,6 +54,24 @@
 - IterCAD/DeciCAD/PhysCAD/CADIR 的否定结论基于源码与公开元数据审计，未运行其权重；若后续出现可用代码或 ACIS 侧需求变化，重新评估。
 - 本轮 3+1 个任务只证明链路与能力面，不构成对框架编辑质量的统计结论。
 
+## 附录 A：官方 harness 逐组件对照（回应"到底接入了多少"）
+
+**架构原则：官方循环代码一行不抄、原样执行。** `ai_agentic_runner.py`（全文件 114 行）在无凭据子进程里 import 固定上游 checkout，直接调用 `BaseVLM._run_mcp(...)`；每次运行前 `verify_upstream` 校验 HEAD 为 `c084034...` 且 `base_vlm.py`/`vllm_openai.py` 无工作区/暂存改动。上游循环本体（`base_vlm.py:838` 起，约 150 行核心：迭代、工具解析、图片回填、finish 拦截、轮数/退出、usage 累计）**全部来自上游文件**——我们代码里"循环部分"小，是集成方式的证据，不是缺失。
+
+| 官方组件 | 上游位置 | ACIS 侧承载 | 保真度 |
+|---|---|---|---|
+| Agent 决策循环 `_run_mcp` | `src/vlms/base_vlm.py:838-`（文件共 1029 行） | 原样执行（runner 子进程直接调用） | 100% 上游代码，运行时强制固定提交 |
+| VLM transport | `src/vlms/vllm_openai.py` | `NativeVLM(OfficialVLM)` 只覆写 `request_tool_turn`/`create_messages` 走 socket 回父进程统一计费 | 继承 + ~40 行胶水 |
+| MCP server 八工具 | `cadquery_mcp/server.py`（8 个 `@mcp.tool`） | `app/ai_agentic_mcp.py` 同名同签名（含 `highlight_faces/edges: list[list[float]]` 中心坐标语义） | 契约保留；实现指向 ACIS |
+| 持久建模会话 | `cad_session.py`（268 行：namespace、浅快照历史、run_step/undo/reset/inspect/list_faces/list_edges/render/export_step） | `app/ai_cad_facade.py` CadSession（647 行）：变量绑定、不可变快照 undo、原子回滚、跨段检查点；并修复上游浅拷贝在原地修改时不恢复的缺陷 | 语义 1:1 重写并加强 |
+| 几何执行面 | CadQuery/OCP | `app/cad_contract.py`（162 行契约）+ `CAD_DB/worker/agent_geometry.inc`（496 行 ACIS：extrude/revolve/sweep/fillet/chamfer、distance/interference/validate、render_selection、STEP 导出） | 后端适配本体 |
+| 渲染与高亮 | `cadquery_rendering.py`（OCP/Cocoa，`view.FitAll()`） | `app/ai_render_views.py` + worker 真实 FACE/EDGE 选择网格；**固定世界相机**（修正上游 FitAll 抹掉尺度变化信号的观测缺陷，依据三 harness 观测探针） | 等价+改进 |
+| finish 客户端拦截 | 上游客户端约定 | runner `FINISH_TOOL` + `exit_reason`（finish/round_limit/no_tool_call） | 上游语义 |
+
+**与"之前"（PR #11/#25 的 ~600 行原生适配器）的区别**：旧入口是自写 JSON 工具循环，8 个白名单动作（图元/变换/布尔/删除）、无面边查询、无高亮、无 fillet/sweep/extrude、无变量绑定与程序语言、自动 FitAll 三视图、2048 token。现入口运行上游官方循环，工具面为官方八工具 + 受限原生语言（覆盖官方演示节奏 inspect→定位→高亮→小步编辑→验证→finish），精确面/边分页查询、真实选区高亮、fillet/chamfer/extrude/revolve/sweep、distance/interference/validate、含变量绑定的 undo、跨段检查点、8192 token、阶段化连续对话。付费 T2 任务完整走了官方论文的节奏（list_edges→高亮渲染→fillet→validate→渲染→export→finish）。
+
+**有意不做/尚未做到的（与"完整 CadQuery harness"的差距）**：run_step 是受限语言子集而非全量 CadQuery Python API（模型生成代码不经 Python exec，命令经校验走服务端权威路径——这是 DBCAD 架构红线）；官方 OCP 渲染器换为 VTK（多视图+高亮语义等价，风格不同）；worker 已有 shell 命令尚未暴露给 AI；浏览器 UI 未在新框架下人工走查。表达面扩展按任务需要继续，不宣称已覆盖 ACIS 全部能力。
+
 ## 复现入口
 
 - 私有配置：`framework="agenticcadedit-acis"`、`agentic_upstream`（固定 checkout）、`render_python`（含 VTK/MCP 的研究 Python）；完整 schema 见本目录 [README.md](README.md)。
