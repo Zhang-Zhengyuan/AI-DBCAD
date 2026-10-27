@@ -1,12 +1,16 @@
 """Authenticated asynchronous AI previews and explicit version publication."""
 
 
+import asyncio
+import json
+from typing import Literal
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from ... import ai_editor
 from ... import ai_provider_store as store
+from ...ai_budget import BudgetExceeded
 from ...dependencies import verify_api_password
 from .projects import _project_or_404
 
@@ -22,6 +26,7 @@ class EditRequest(BaseModel):
     images: list[StrictStr] = Field(default_factory=list, max_length=3)
     provider_id: str | None = Field(default=None, max_length=40)
     model: str | None = Field(default=None, max_length=120)
+    mode: Literal["edit", "inspect"] = "edit"
 
 
 class ApplyRequest(BaseModel):
@@ -78,8 +83,12 @@ async def _remote_models(base_url: str, api_key: str) -> list[str]:
 
 
 @router.get("/ai/status")
-def status():
-    return ai_editor.availability()
+def status(provider_id: str | None = None, model: str | None = None):
+    result = ai_editor.availability()
+    if model:
+        runtime = ai_editor.resolve_runtime_config(ai_editor.configuration(), provider_id, model)
+        result.update(model=model, budget=runtime["budget"].summary())
+    return result
 
 
 @router.get("/ai/providers")
@@ -125,41 +134,71 @@ async def provider_models(provider_id: str):
         {"id": model,
          "vlm": cache.get(model, {}).get("vlm"),
          "probe_error": cache.get(model, {}).get("probe_error"),
-         "pricing": {k: cache.get(model, {}).get(k) for k in
+         "pricing": ({k: cache.get(model, {}).get(k) for k in
                      ("input_cny_per_million", "output_cny_per_million", "context_tokens")
-                     if cache.get(model, {}).get(k) is not None}}
+                     if cache.get(model, {}).get(k) is not None}
+                     if all(cache.get(model, {}).get(k) is not None for k in
+                            ("input_cny_per_million", "output_cny_per_million", "context_tokens")) else None)}
         for model in models
     ]}
 
 
 @router.post("/ai/providers/{provider_id}/models/{model_id}/probe")
 async def probe_model(provider_id: str, model_id: str):
-    """One minimal image+tool request: passing proves multimodal VLM eligibility.
+    """A priced visual challenge returned through a tool, under the total cap.
 
-    The probe spends a tiny amount of the provider's own tokens; its usage is
-    recorded and disclosed instead of charging the research ledger.
+    This is a capability smoke test, not a guarantee of CAD competence.
     """
-    base_url, api_key = _credentials(provider_id)
+    runtime = ai_editor.resolve_runtime_config(ai_editor.configuration(), provider_id,
+                                              model_id, require_vlm=False)
+    expected, image = store.visual_challenge()
+    try:
+        index = runtime["budget"].reserve(model_id, 512, "provider-probe/" + provider_id)
+    except BudgetExceeded as error:
+        raise HTTPException(402, str(error)) from error
+    await asyncio.to_thread(runtime["budget"].wait_for_slot)
     async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(base_url + "/chat/completions", headers={
-            "Authorization": "Bearer " + api_key,
+        response = await client.post(runtime["base_url"].rstrip("/") + "/chat/completions", headers={
+            "Authorization": "Bearer " + runtime["api_key"],
         }, json={
             "model": model_id,
             "messages": [{"role": "user", "content": [
-                {"type": "text", "text": "ping"},
+                {"type": "text", "text": "Identify the solid square's colour in the image. Call report_probe with red, green, blue or yellow. Do not guess from this text."},
                 {"type": "image_url", "image_url": {
-                    "url": "data:image/png;base64," + store.PROBE_PNG}},
+                    "url": image}},
             ]}],
             "tools": [{"type": "function", "function": {
-                "name": "ping", "description": "connectivity probe",
-                "parameters": {"type": "object", "properties": {}, "required": []},
+                "name": "report_probe", "description": "Report the observed image colour",
+                "parameters": {"type": "object", "properties": {"colour": {
+                    "type": "string", "enum": ["red", "green", "blue", "yellow"]}}, "required": ["colour"]},
             }}],
-            "tool_choice": "auto", "max_tokens": 16,
+            "tool_choice": "auto", "max_tokens": 512,
         })
-    usage = (response.json().get("usage") or {}) if response.content else {}
+    try:
+        data = response.json()
+    except ValueError:
+        data = {}
+    usage = data.get("usage")
+    try:
+        runtime["budget"].settle(index, usage, data.get("model"))
+    except BudgetExceeded as error:
+        raise HTTPException(402, str(error)) from error
     if response.status_code == 200:
-        store.update_model(provider_id, model_id, vlm=True, probe_usage=usage)
-        return {"model": model_id, "vlm": True, "probe_usage": usage}
+        if not usage:
+            raise HTTPException(502, "探针费用未知，已保留预算预留，不能自动重试")
+        passed = False
+        try:
+            calls = data["choices"][0]["message"].get("tool_calls") or []
+            for call in calls:
+                arguments = call["function"].get("arguments", "{}")
+                args = json.loads(arguments) if isinstance(arguments, str) else arguments
+                passed |= call["function"]["name"] == "report_probe" and args.get("colour") == expected
+        except (KeyError, IndexError, ValueError, TypeError, AttributeError):
+            passed = False
+        error = None if passed else "未同时通过图片识别与工具调用；HTTP成功不代表具备这两项能力"
+        store.update_model(provider_id, model_id, vlm=passed, probe_error=error, probe_usage=usage)
+        return {"model": model_id, "vlm": passed, "probe_error": error, "probe_usage": usage,
+                "budget": runtime["budget"].summary()}
     detail = ""
     try:
         detail = str(response.json().get("error", {}).get("message", ""))[:300]
@@ -191,7 +230,7 @@ async def create(project_id: str, payload: EditRequest):
     return (
         await ai_editor.start(
             project_id, payload.base_version, payload.instruction, payload.selected,
-            payload.parent_job_id, payload.images, payload.provider_id, payload.model,
+            payload.parent_job_id, payload.images, payload.provider_id, payload.model, payload.mode,
         )
     ).public()
 

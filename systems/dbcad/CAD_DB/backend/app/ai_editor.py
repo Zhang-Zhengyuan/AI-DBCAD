@@ -21,7 +21,8 @@ from uuid import uuid4
 import httpx
 from fastapi import HTTPException
 
-from .ai_budget import Budget, BudgetExceeded
+from .ai_budget import SharedBudget, BudgetExceeded
+from .ai_messages import close_tool_messages
 from .cad_contract import ADVANCED_COMMAND_SCHEMAS, validate_query
 from .command_result import manifest_from_result
 from .component_store import get_component_store
@@ -62,7 +63,7 @@ def configuration():
     if not credentials.get("CAD_API_KEY"):
         raise HTTPException(503, "AI provider key is missing")
     config["api_key"] = credentials["CAD_API_KEY"]
-    config["budget"] = Budget(config["ledger"], config["limit_cny"], config["pricing"])
+    config["budget"] = SharedBudget(config["ledger"], config["limit_cny"], config["pricing"])
     return config
 
 
@@ -122,6 +123,8 @@ class Job:
     conversation_id: str = ""
     agentic_state: dict = field(default_factory=dict)
     provider_id: str | None = None
+    mode: str = "edit"
+    camera: dict | None = None
 
     def public(self):
         return {
@@ -144,12 +147,13 @@ class Job:
             "parent_job_id": self.parent_job_id,
             "conversation_id": self.conversation_id or self.id,
             "provider_id": self.provider_id,
+            "mode": self.mode,
             "scene": {
                 "project_id": self.project,
                 "version": self.base or 0,
                 "components": [c.to_scene_json() for c in self.manifest],
             }
-            if self.status in ("paused", "ready", "applied")
+            if self.status in ("paused", "ready", "applied", "completed")
             else None,
         }
 
@@ -191,13 +195,8 @@ def make_room():
         raise HTTPException(429, "未完成的 AI 预览过多，请先应用或放弃已有预览")
 
 
-def resolve_runtime_config(config, provider_id, model):
-    """Clone the env config onto a stored provider/model with its own ledger.
-
-    Only VLM-verified models with explicit pricing may run: the budget ledger
-    pins its pricing per file, so custom usage stays separate from the research
-    budget instead of mixing unverifiable prices into it.
-    """
+def resolve_runtime_config(config, provider_id, model, *, require_vlm=True):
+    """Select pinned prices while preserving the authorization's total limit."""
     from . import ai_provider_store as store
 
     if not provider_id and not model:
@@ -209,12 +208,12 @@ def resolve_runtime_config(config, provider_id, model):
     provider_id = provider_id or store.DEFAULT_ID
     record = store.get_provider(provider_id)
     entry = ((record or {}).get("models") or {}).get(model)
-    if not entry or entry.get("vlm") is not True:
+    if require_vlm and (not entry or entry.get("vlm") is not True):
         raise HTTPException(422, f"模型 {model} 未通过 VLM 探测，不能选择；请先在设置里检测")
-    if "input_cny_per_million" not in entry or "output_cny_per_million" not in entry:
+    if not entry or "input_cny_per_million" not in entry or "output_cny_per_million" not in entry:
         raise HTTPException(422, f"模型 {model} 缺少已填单价，不能开始付费任务")
     if provider_id == store.DEFAULT_ID:
-        base_url, api_key, limit = config["base_url"].rstrip("/"), config["api_key"], 100.0
+        base_url, api_key, limit = config["base_url"].rstrip("/"), config["api_key"], None
     else:
         if not record.get("api_key"):
             raise HTTPException(422, "该 provider 缺少 API key")
@@ -227,20 +226,26 @@ def resolve_runtime_config(config, provider_id, model):
                "source": f"user provider {provider_id}"}
     runtime = dict(config)
     runtime.update(base_url=base_url, api_key=api_key, pricing=pricing,
-                   budget=Budget(str(store.ledger_path(provider_id, model)), limit, pricing))
+                   budget=SharedBudget(config["budget"].path, config["budget"].limit,
+                                       pricing, scope=provider_id, scope_limit=limit))
     return runtime
 
 
 async def start(project, base, instruction, selected, parent_job_id=None,
-                images=None, provider_id=None, model=None):
+                images=None, provider_id=None, model=None, mode="edit"):
     config = configuration()
     config = resolve_runtime_config(config, provider_id, model)
     framework = config.get("framework", "native")
+    if mode not in {"edit", "inspect"} or (mode == "inspect" and framework != "agenticcadedit-acis"):
+        raise HTTPException(422, "只读检查需要官方 AgenticCADedit 框架")
     if images:
         if framework != "agenticcadedit-acis":
             raise HTTPException(422, "图片输入目前仅在官方 AgenticCADedit 框架下可用")
         from . import ai_provider_store as store
-        images = store.decode_data_urls(images)
+        try:
+            images = store.decode_data_urls(images)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
     check_running(project)
     head, components = _head(project)
     if base != head:
@@ -250,8 +255,8 @@ async def start(project, base, instruction, selected, parent_job_id=None,
     parent = None
     if parent_job_id:
         parent = find_job(project, parent_job_id)
-        if parent.status != "applied" or parent.framework != "agenticcadedit-acis" or framework != parent.framework:
-            raise HTTPException(409, "只有已应用的 AgenticCADedit 任务可作为连续对话的父阶段")
+        if parent.status not in {"applied", "completed", "failed", "cancelled"} or parent.framework != "agenticcadedit-acis" or framework != parent.framework:
+            raise HTTPException(409, "只有已终结的 AgenticCADedit 阶段可作为连续对话的父阶段")
         if not parent.messages:
             raise HTTPException(409, "父阶段缺少完整对话记录")
     make_room()
@@ -263,15 +268,18 @@ async def start(project, base, instruction, selected, parent_job_id=None,
     job.ledger = str(config["budget"].path.resolve())
     job.framework = framework
     job.provider_id = provider_id or None
+    job.mode = mode
     job.conversation_id = parent.conversation_id or parent.id if parent else job.id
     if parent:
+        job.camera = copy.deepcopy(parent.camera)
         job.parent_job_id = parent.id
-        job.messages = copy.deepcopy(parent.messages)
+        job.messages = close_tool_messages(parent.messages, allow_unknown=True)
         # Keep source history, but never carry native handles or undo snapshots
         # over an intervening human edit. Current SAT assets define the new stage.
         job.messages.append({"role": "user", "content":
-            f"新的人工-agent编辑阶段。历史观测来自旧阶段 base={parent.base}，已应用版本={parent.version}；"
+            f"新的人工-agent编辑阶段。旧阶段状态={parent.status}，base={parent.base}，已应用版本={parent.version}；"
             f"当前正式版本={base}。请重新检查当前几何，旧组件引用不保证有效。"
+            "未应用的旧预览不属于当前模型；中断工具不得自动重放。"
             f"保留仍生效的要求，按本次要求更新；本阶段要求：{instruction}"})
         job.trace.append({"step": 1, "tool": "conversation", "outcome": "ok",
                           "detail": f"继承父阶段 {parent.id} 的对话；在当前版本 {base} 上重新建立几何绑定"})
@@ -285,6 +293,10 @@ async def start(project, base, instruction, selected, parent_job_id=None,
         job.messages.append({"role": "user", "content": content})
         job.trace.append({"step": len(job.trace) + 1, "tool": "images", "outcome": "ok",
                           "detail": f"附带 {len(images)} 张参考图片进入官方循环上下文"})
+    if framework == "agenticcadedit-acis":
+        permission = ("只读检查，禁止任何几何写操作（包括临时几何）；查询、报告并 finish。"
+                      if mode == "inspect" else "编辑预览，允许按本阶段要求调用几何工具；先前阶段的只读模式已结束。")
+        job.messages.append({"role": "user", "content": f"当前阶段权限：{permission}\n当前阶段要求：{instruction}"})
     jobs[job.id] = job
     job.task = asyncio.create_task(run(job, config))
     return job
@@ -361,6 +373,8 @@ def inspect(job):
 def validate_command(action, params, job):
     from .api.v1.commands import COMMAND_SCHEMAS, _validate, _referenced_components
 
+    if getattr(job, "mode", "edit") == "inspect":
+        raise ValueError("本阶段只读，禁止几何写操作；请仅查询并汇报检查结果")
     _validate(action, params)
     if action in ADVANCED_COMMAND_SCHEMAS:
         if _referenced_components(action, params) - {c.hash_sat for c in job.manifest}:
@@ -761,7 +775,10 @@ def _finalize_official(job, result):
     summary = str(result.get("summary") or "").strip()
     job.summary = summary[:4000]
     if result.get("finished") and result.get("success"):
-        if [c.hash_sat for c in job.manifest] == [c.hash_sat for c in job.original]:
+        if getattr(job, "mode", "edit") == "inspect":
+            job.status = "completed"
+            job.version = getattr(job, "base", None)
+        elif [c.hash_sat for c in job.manifest] == [c.hash_sat for c in job.original]:
             job.status = "failed"
             job.summary = ("模型声明完成但预览几何没有任何变化；按未支持处理，未发布版本。"
                            + summary[:2000])
@@ -777,6 +794,8 @@ def _finalize_official(job, result):
 
 def _world_frame(job):
     """Fixed camera frame from the job's scenes: original ∪ current preview."""
+    if getattr(job, "camera", None):
+        return copy.deepcopy(job.camera)
     boxes = [c for c in list(job.original) + list(job.manifest)
              if c.bbox_min and c.bbox_max]
     if not boxes:
@@ -784,7 +803,8 @@ def _world_frame(job):
     lows = [min(c.bbox_min[i] for c in boxes) for i in range(3)]
     highs = [max(c.bbox_max[i] for c in boxes) for i in range(3)]
     size = max(highs[i] - lows[i] for i in range(3)) or 1.0
-    return {"center": [(lows[i] + highs[i]) / 2 for i in range(3)], "size": size}
+    job.camera = {"center": [(lows[i] + highs[i]) / 2 for i in range(3)], "size": size}
+    return copy.deepcopy(job.camera)
 
 
 async def _map_selection_highlights(query, components, highlight_faces, highlight_edges):
@@ -808,14 +828,20 @@ async def _map_selection_highlights(query, components, highlight_faces, highligh
     picks = {}
     for kind, point in requested:
         best = None
+        ambiguous = False
         for entry_kind, center, component, index in catalog:
             if entry_kind != kind:
                 continue
             distance = sum((a - b) ** 2 for a, b in zip(center, point))
             if best is None or distance < best[0]:
                 best = (distance, component, index)
+                ambiguous = False
+            elif abs(distance-best[0]) <= 1e-12:
+                ambiguous = True
         if best is None or best[0] > 1e-6:
             raise ValueError("高亮中心与当前拓扑不匹配；重新 list_faces/list_edges 获取当前中心后再渲染")
+        if ambiguous:
+            raise ValueError("多个实体具有相同高亮中心，不能猜测选区；请明确定位后再操作")
         picks.setdefault((best[1], kind), []).append(best[2])
     selections = []
     for (component, kind), indices in picks.items():
@@ -1019,8 +1045,11 @@ def restore_job(project, job_id):
             "segment_limit", "pause_reason", "model", "ledger")}
         fields.update({key: payload.get(key, default) for key, default in (
             ("framework", "native"), ("parent_job_id", None), ("conversation_id", job_id),
-            ("agentic_state", {}), ("provider_id", None))})
-        if fields["status"] not in {"paused", "ready", "failed", "cancelled", "applied"}:
+            ("agentic_state", {}), ("provider_id", None), ("mode", "edit"), ("camera", None))})
+        if fields["status"] == "running":
+            fields.update(status="paused", pause_reason="interrupted",
+                          summary="服务在执行中中断。已恢复最近检查点供审阅；费用或工具结果可能待核对，禁止自动重放。")
+        if fields["status"] not in {"paused", "ready", "failed", "cancelled", "applied", "completed"}:
             return None
         fields["original"] = [SceneComponent(**c) for c in payload["original"]]
         fields["manifest"] = [SceneComponent(**c) for c in payload["manifest"]]
@@ -1038,17 +1067,17 @@ def persist(job):
         try:
             folder = Path(job.trace_dir)
             _atomic_json(folder / (job.id + ".json"), job.public())
-            if job.status != "running":
-                payload = {key: getattr(job, key) for key in (
-                    "id", "project", "base", "instruction", "selected", "created", "status", "summary",
-                    "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
-                    "segment_limit", "pause_reason", "model", "ledger", "projections",
-                    "framework", "parent_job_id", "conversation_id", "agentic_state",
-                    "provider_id")}
-                payload.update(schema_version=1,
-                    original=[asdict(c) for c in job.original], manifest=[asdict(c) for c in job.manifest],
-                    history=[[asdict(c) for c in stage] for stage in job.history])
-                _atomic_json(_checkpoint_path(folder, job.id), payload)
+            # Persist running progress, but never auto-replay interrupted tools.
+            payload = {key: getattr(job, key) for key in (
+                "id", "project", "base", "instruction", "selected", "created", "status", "summary",
+                "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
+                "segment_limit", "pause_reason", "model", "ledger", "projections",
+                "framework", "parent_job_id", "conversation_id", "agentic_state",
+                "provider_id", "mode", "camera")}
+            payload.update(schema_version=1,
+                original=[asdict(c) for c in job.original], manifest=[asdict(c) for c in job.manifest],
+                history=[[asdict(c) for c in stage] for stage in job.history])
+            _atomic_json(_checkpoint_path(folder, job.id), payload)
         except (OSError, ValueError) as error:
             logger.warning("AI trace could not be saved (%s)", type(error).__name__)
             if job.status in {"paused", "ready"} and not any(t.get("tool") == "checkpoint" for t in job.trace):

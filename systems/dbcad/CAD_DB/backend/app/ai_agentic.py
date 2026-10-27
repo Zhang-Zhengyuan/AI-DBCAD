@@ -174,6 +174,8 @@ class AgenticBridge:
                     raise ValueError("Unknown render argument")
                 result = await self.session.render(**args)
             elif name in {"undo", "reset"}:
+                if getattr(self.job, "mode", "edit") == "inspect":
+                    raise ValueError("Read-only stage forbids undo/reset geometry writes")
                 if args:
                     raise ValueError(f"{name} accepts no arguments")
                 result = await getattr(self.session, name)()

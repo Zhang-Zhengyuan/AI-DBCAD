@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const backend = path.join(root, 'CAD_DB/backend');
-const python = path.join(backend, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+const python = process.env.CAD_DB_E2E_PYTHON || path.join(backend, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'dbcad-e2e-'));
 const child = spawn(python, ['-m', 'uvicorn', '--app-dir', backend, 'app.main:app', '--host', '127.0.0.1', '--port', '8765', '--log-level', 'warning'], {
   cwd: work, stdio: 'inherit',

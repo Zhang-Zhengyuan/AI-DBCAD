@@ -14,6 +14,7 @@ import subprocess
 import sys
 
 from ai_agentic_mcp import rpc
+from ai_messages import close_tool_messages
 
 
 UPSTREAM_REVISION = "c084034cdcf462025a60ee70c5ba94577428e5ca"
@@ -73,7 +74,7 @@ def main(spec_path):
 
         def create_messages(self, inputs, sys=None):
             if self.seed is not None:
-                messages, self.seed = self.seed, None
+                messages, self.seed = close_tool_messages(self.seed), None
                 # Upstream assembles [system, user(conversation_instruction, ...)] via
                 # create_messages; a seeded job (image input or resume) bypasses that,
                 # so re-inject the native API prompt exactly once per conversation.

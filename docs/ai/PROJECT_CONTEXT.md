@@ -12,9 +12,11 @@ AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API
 
 原生 AI 编辑与三 harness 对照研究入口：[research/harness_study/README.md](../../research/harness_study/README.md)。AI 预览支持分段暂停/同任务继续，有 trace_dir 时保存私有检查点；原任务累计费用与版本检查不重置。AI 路由与隔离预览循环位于 `systems/dbcad/CAD_DB/backend/app/api/v1/ai.py`、`app/ai_editor.py`，浏览器面板为 `systems/dbcad/web/src/AIPanel.tsx`；费用控制模块 `app/ai_budget.py` 与研究 API 共用。
 
-AI-CAD-agent 底层框架（EXP-003 已选定）：官方 AgenticCADedit 循环（固定上游提交）经 `agenticcadedit-acis/1` 适配器运行在 ACIS 上——接入层 `app/ai_agentic.py`（桥接与提示）、`app/ai_agentic_runner.py`/`app/ai_agentic_mcp.py`（上游循环与 MCP 子进程）、`app/ai_cad_facade.py` + `app/cad_contract.py`（受限原生语言与命令/查询契约）、`app/ai_render_views.py`（固定相机多视图 + 真实选区高亮）；worker 侧新命令在 `CAD_DB/worker/agent_geometry.inc`。配置字段 `framework=agenticcadedit-acis` + `agentic_upstream` + `render_python`。用户交互层支持：网页填写自定义 provider（base_url+key，只存本机 0600 文件）、拉取模型列表并按“图片+工具”探针筛选可用 VLM（纯文本模型不可选）、填写单价后按 provider+model 独立账本记账、随指令上传图纸图片进入官方循环上下文（看图建模）；实现于 `app/ai_provider_store.py` 与 `app/api/v1/ai.py` 的 /ai/providers 端点组。选型证据与边界见 [experiments/exp-003-cad-agent-selection/DECISION.md](../../experiments/exp-003-cad-agent-selection/DECISION.md)。
+AI-CAD-agent 底层框架（EXP-003 已选定）：官方 AgenticCADedit 循环（固定上游提交）经 `agenticcadedit-acis/1` 适配器运行在 ACIS 上——接入层 `app/ai_agentic.py`（桥接与提示）、`app/ai_agentic_runner.py`/`app/ai_agentic_mcp.py`（上游循环与 MCP 子进程）、`app/ai_cad_facade.py` + `app/cad_contract.py`（受限原生语言与命令/查询契约）、`app/ai_render_views.py`（固定相机多视图 + 真实选区高亮）；worker 侧新命令在 `CAD_DB/worker/agent_geometry.inc`。配置字段 `framework=agenticcadedit-acis` + `agentic_upstream` + `render_python`。用户交互层支持：网页填写自定义 provider（base_url+key，只存本机 0600 文件）、拉取模型列表并按“图片+工具”探针筛选可用 VLM（纯文本模型不可选）、填写单价后模型与探针共同受授权总账限制，provider 另有跨模型子上限、随指令上传图纸图片进入官方循环上下文（看图建模）；实现于 `app/ai_provider_store.py` 与 `app/api/v1/ai.py` 的 /ai/providers 端点组。选型证据与边界见 [experiments/exp-003-cad-agent-selection/DECISION.md](../../experiments/exp-003-cad-agent-selection/DECISION.md)。
 
 Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `DBCAD.command`。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
+
+Issue #30 修复说明：网页下一阶段通过 `parent_job_id` 显式继承已终结任务；`mode=inspect` 是禁止写操作的只读阶段，完成状态为 completed、不发布空版本。运行中也保存检查点，中断检查点仅供审阅并拒绝自动重放。`SharedBudget` 在既有授权账本原位保留费用与未知预留，默认/自定义模型和视觉工具探针共同受总上限约束，provider 另有跨模型累计子上限；VLM 资格要求真实图片答案通过工具返回。连续编辑研究入口：[EXP-004](../../experiments/exp-004-native-continuation/README.md)。
 
 ## 运行链路（v3 服务端权威）
 
