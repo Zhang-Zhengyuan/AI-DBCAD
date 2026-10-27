@@ -123,6 +123,10 @@ class SubprocessWorkerGateway:
     def export_stl(self, parts: list[bytes]) -> bytes:
         return self._collect("export", parts, "--stl-out", ".stl")
 
+    def export_step(self, parts: list[bytes]) -> bytes:
+        """Export real STEP through the worker's InterOp writer."""
+        return self._collect("export", parts, "--step-out", ".step")
+
     def _collect(self, command: str, parts: list[bytes], out_flag: str, suffix: str) -> bytes:
         if not parts:
             raise WorkerError("no components to export")

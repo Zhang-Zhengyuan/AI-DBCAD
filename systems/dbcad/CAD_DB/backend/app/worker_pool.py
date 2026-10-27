@@ -181,6 +181,34 @@ class GeometryPool:
                 shutil.rmtree(session.spool, ignore_errors=True)
         self._locks.pop(project_id, None)
 
+    async def query(
+        self,
+        project_id: str,
+        head_version: int,
+        components: list[SceneComponent],
+        query: dict,
+    ) -> dict:
+        """Read exact geometry through the same isolated, serialized session.
+
+        Queries publish no assets or versions. The manifest remains the authority
+        after an edit, undo, or external version change, just as for execute().
+        """
+        async with self._lock(project_id):
+            session = self._sessions.get(project_id)
+            if session is None:
+                session = _Session(project_id)
+                self._sessions[project_id] = session
+            self._touch(project_id)
+            try:
+                await session.sync(head_version, components)
+                response = await session.process.request("query", query=query)
+            except WorkerError:
+                self._sessions.pop(project_id, None)
+                await session.process.stop()
+                raise
+            await self._evict_locked()
+            return response.get("result", {})
+
     def _collect(self, project_id: str, result: dict) -> None:
         """把 worker 发射的组件文件搬进内容寻址组件库（含实体图投影）。"""
         assets = get_component_store()

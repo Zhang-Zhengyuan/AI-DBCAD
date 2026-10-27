@@ -14,6 +14,7 @@ class EditRequest(BaseModel):
     instruction: str = Field(min_length=2, max_length=6000)
     base_version: StrictInt | None = Field(..., ge=1)
     selected: list[str] = Field(default_factory=list, max_length=128)
+    parent_job_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
 
 
 class ApplyRequest(BaseModel):
@@ -36,7 +37,7 @@ async def create(project_id: str, payload: EditRequest):
     _project_or_404(project_id)
     return (
         await ai_editor.start(
-            project_id, payload.base_version, payload.instruction, payload.selected
+            project_id, payload.base_version, payload.instruction, payload.selected, payload.parent_job_id
         )
     ).public()
 
