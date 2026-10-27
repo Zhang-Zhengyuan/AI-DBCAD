@@ -12,6 +12,8 @@ ResumaCAD 研究共享 CAD 项目经历人工编辑、需求更新和暂停/恢�
 
 DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单请求对照已有结果；它们不能证明长期证据失效的普遍性，也不能证明候选方法有效。EXP-002 已用独立几何真值和成对外部变化观察到旧数值误用案例；按需重查也是有效且廉价的强基线，后续方法必须正面比较。
 
+AI-CAD-agent 底层框架已选定（EXP-003）：官方 AgenticCADedit 循环经 `agenticcadedit-acis/1` 适配器接入 DBCAD/ACIS，含精确面边查询、选区高亮、拉伸/旋转/扫掠、圆角/倒角与阶段化连续对话；IterCAD 经审计不接入，保留为外部对照。
+
 不宣称“首次多轮 CAD”或“首次长时程 CAD”。已有 mrCAD、CADWorld、HistCAD、Concord/TRACE 等近邻工作需要明确比较；合法需求更新与误用旧观测须分别评价。新颖性、实际错误率和完整成本仍需核实。
 
 ## 从哪里开始
@@ -19,6 +21,7 @@ DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单�
 - [实验索引](experiments/README.md)：每个实验的稳定 ID、协议、代码、结果和本地原始记录位置。
 - [EXP-001 · 已完成三 harness 对照](experiments/exp-001-three-harness/README.md)：精选文本指标、代理评分的后验局限和来源清单。
 - [EXP-002 · 证据失效预实验](experiments/exp-002-evidence-validity/README.md)：已完成 24 个正式恢复分支；N/F/A 最终成功 5/8、8/8、8/8，不能外推工业发生率。
+- [EXP-003 · 框架选型与 ACIS 接入](experiments/exp-003-cad-agent-selection/README.md)：官方 AgenticCADedit 循环接入 DBCAD/ACIS，付费端到端验收与选型决策见 [DECISION.md](experiments/exp-003-cad-agent-selection/DECISION.md)。
 - [研究适配与复现](research/README.md)：固定上游、依赖环境、数据与 harness 入口。
 - [DBCAD 底座](systems/dbcad/README.md)：worker、后端、前端、构建与部署。
 - [代码导航](docs/ai/PROJECT_CONTEXT.md) · [Mac 接手说明](docs/ai/MAC_HANDOFF.md)。
