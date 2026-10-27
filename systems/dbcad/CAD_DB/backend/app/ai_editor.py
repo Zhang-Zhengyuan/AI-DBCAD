@@ -1,12 +1,13 @@
 """Agentic inspect/execute/render/undo loop over isolated ACIS scene manifests.
 
-Only apply() publishes a version. Model output never becomes Python or a shell
-command: all geometry passes through the existing native command contract.
+Only apply() publishes a version. Geometry passes through the existing native
+command contract. The optional official agent uses a bounded CAD facade.
 """
 
 from __future__ import annotations
 import asyncio
 import base64
+import copy
 from dataclasses import asdict, dataclass, field
 import json
 import logging
@@ -21,6 +22,7 @@ import httpx
 from fastapi import HTTPException
 
 from .ai_budget import Budget, BudgetExceeded
+from .cad_contract import ADVANCED_COMMAND_SCHEMAS, validate_query
 from .command_result import manifest_from_result
 from .component_store import get_component_store
 from .config import settings
@@ -32,12 +34,24 @@ from .worker_pool import get_worker_pool
 
 logger = logging.getLogger(__name__)
 NATIVE_TIMEOUT_SECONDS = 60
+FRAMEWORKS = {"native", "agenticcadedit-acis"}
+
+
+def output_limit(config):
+    default = 8192 if config.get("framework") == "agenticcadedit-acis" else 2048
+    limit = config.get("max_tokens", default)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 256 <= limit <= 40960:
+        raise ValueError("max_tokens must be an integer between 256 and 40960")
+    return limit
 
 
 def configuration():
     if not settings.ai_config:
         raise HTTPException(503, "AI 编辑未配置，请设置 CAD_DB_AI_CONFIG")
     config = json.loads(Path(settings.ai_config).read_text())
+    if config.get("framework", "native") not in FRAMEWORKS:
+        raise HTTPException(503, "Unknown configured AI-CAD framework")
+    output_limit(config)
     if not config.get("base_url", "").startswith("https://"):
         raise HTTPException(503, "AI provider requires HTTPS")
     credentials = {}
@@ -55,11 +69,16 @@ def configuration():
 def availability():
     try:
         config = configuration()
+        advanced = config.get("framework", "native") == "agenticcadedit-acis"
+        if advanced and not (Path(config.get("agentic_upstream", "")) / "src/vlms/base_vlm.py").is_file():
+            raise ValueError("Pinned AgenticCADedit checkout is missing")
         return {
             "enabled": True,
             "model": config["pricing"]["model"],
+            "framework": config.get("framework", "native"),
+            "framework_label": "AgenticCADedit · ACIS" if advanced else "原生基础编辑",
             "budget": config["budget"].summary(),
-            "capabilities": [
+            "capabilities": (["精确几何查询", "面边定位与高亮", "拉伸/旋转/扫掠", "圆角/倒角", "连续对话"] if advanced else []) + [
                 "图元创建",
                 "平移/旋转/缩放",
                 "布尔并/差/交",
@@ -98,6 +117,10 @@ class Job:
     pause_reason: str | None = None
     model: str = ""
     ledger: str = ""
+    framework: str = "native"
+    parent_job_id: str | None = None
+    conversation_id: str = ""
+    agentic_state: dict = field(default_factory=dict)
 
     def public(self):
         return {
@@ -116,6 +139,9 @@ class Job:
             "cancel_requested": self.cancelled,
             "estimated_cny": self.cost,
             "version": self.version,
+            "framework": self.framework,
+            "parent_job_id": self.parent_job_id,
+            "conversation_id": self.conversation_id or self.id,
             "scene": {
                 "project_id": self.project,
                 "version": self.base or 0,
@@ -163,7 +189,7 @@ def make_room():
         raise HTTPException(429, "未完成的 AI 预览过多，请先应用或放弃已有预览")
 
 
-async def start(project, base, instruction, selected):
+async def start(project, base, instruction, selected, parent_job_id=None):
     config = configuration()
     check_running(project)
     head, components = _head(project)
@@ -171,6 +197,14 @@ async def start(project, base, instruction, selected):
         raise HTTPException(409, {"reason": "stale_base_version", "current_head": head})
     if set(selected) - {c.hash_sat for c in components}:
         raise HTTPException(422, "所选组件不属于当前版本")
+    parent = None
+    framework = config.get("framework", "native")
+    if parent_job_id:
+        parent = find_job(project, parent_job_id)
+        if parent.status != "applied" or parent.framework != "agenticcadedit-acis" or framework != parent.framework:
+            raise HTTPException(409, "只有已应用的 AgenticCADedit 任务可作为连续对话的父阶段")
+        if not parent.messages:
+            raise HTTPException(409, "父阶段缺少完整对话记录")
     make_room()
     job = Job(
         uuid4().hex, project, base, instruction, selected, components, list(components)
@@ -178,6 +212,19 @@ async def start(project, base, instruction, selected):
     job.trace_dir = config.get("trace_dir")
     job.model = config["pricing"]["model"]
     job.ledger = str(config["budget"].path.resolve())
+    job.framework = framework
+    job.conversation_id = parent.conversation_id or parent.id if parent else job.id
+    if parent:
+        job.parent_job_id = parent.id
+        job.messages = copy.deepcopy(parent.messages)
+        # Keep source history, but never carry native handles or undo snapshots
+        # over an intervening human edit. Current SAT assets define the new stage.
+        job.messages.append({"role": "user", "content":
+            f"新的人工-agent编辑阶段。历史观测来自旧阶段 base={parent.base}，已应用版本={parent.version}；"
+            f"当前正式版本={base}。请重新检查当前几何，旧组件引用不保证有效。"
+            f"保留仍生效的要求，按本次要求更新；本阶段要求：{instruction}"})
+        job.trace.append({"step": 1, "tool": "conversation", "outcome": "ok",
+                          "detail": f"继承父阶段 {parent.id} 的对话；在当前版本 {base} 上重新建立几何绑定"})
     jobs[job.id] = job
     job.task = asyncio.create_task(run(job, config))
     return job
@@ -195,7 +242,7 @@ async def resume(job, instruction=""):
     check_running(job.project)
     config = configuration()
     if (job.model != config["pricing"]["model"] or
-            job.ledger != str(config["budget"].path.resolve())):
+            job.ledger != str(config["budget"].path.resolve()) or job.framework != config.get("framework", "native")):
         raise HTTPException(409, "模型或预算账本已改变，不能把旧任务当成新额度继续")
     entries = config["budget"].update(lambda d: [c for c in d["calls"] if c["label"] == "native-ai/" + job.id])
     if any(c["status"] != "completed" for c in entries):
@@ -206,7 +253,7 @@ async def resume(job, instruction=""):
         raise HTTPException(402, "本任务累计费用上限已到；继续不会重置费用额度")
     budget = config["budget"].summary()
     pricing = config["pricing"]
-    reservation = (pricing["context_tokens"] * pricing["input_cny_per_million"] + 2048 * pricing["output_cny_per_million"]) / 1e6
+    reservation = (pricing["context_tokens"] * pricing["input_cny_per_million"] + output_limit(config) * pricing["output_cny_per_million"]) / 1e6
     if budget["charged_or_reserved_cny"] + reservation > budget["limit_cny"]:
         raise HTTPException(402, "预算账本可用额度不足，本次未发起模型调用；请先核对预算")
     if not job.messages:
@@ -254,6 +301,10 @@ def validate_command(action, params, job):
     from .api.v1.commands import COMMAND_SCHEMAS, _validate, _referenced_components
 
     _validate(action, params)
+    if action in ADVANCED_COMMAND_SCHEMAS:
+        if _referenced_components(action, params) - {c.hash_sat for c in job.manifest}:
+            raise ValueError("Unknown component ID; inspect current geometry")
+        return
     allowed = [
         "component.create",
         "component.translate",
@@ -422,6 +473,9 @@ def tools():
 
 
 async def run(job, config):
+    if job.framework == "agenticcadedit-acis":
+        await run_official(job, config)
+        return
     from .api.v1.commands import COMMAND_SCHEMAS
 
     schemas = {
@@ -641,6 +695,221 @@ async def run(job, config):
             persist(job)
 
 
+def _finalize_official(job, result):
+    """Map one finished official segment onto the native job states."""
+    summary = str(result.get("summary") or "").strip()
+    job.summary = summary[:4000]
+    if result.get("finished") and result.get("success"):
+        if [c.hash_sat for c in job.manifest] == [c.hash_sat for c in job.original]:
+            job.status = "failed"
+            job.summary = ("模型声明完成但预览几何没有任何变化；按未支持处理，未发布版本。"
+                           + summary[:2000])
+        else:
+            job.status = "ready"
+    elif result.get("finished"):
+        job.status = "failed"
+    else:
+        job.status, job.pause_reason = "paused", str(result.get("exit_reason") or "round_limit")
+        job.summary = ("本段未显式完成（" + job.pause_reason + "）。预览与完整对话已保留，"
+                       "可继续同一任务；累计费用不重置，正式模型未修改。" + summary[:2000])
+
+
+def _world_frame(job):
+    """Fixed camera frame from the job's scenes: original ∪ current preview."""
+    boxes = [c for c in list(job.original) + list(job.manifest)
+             if c.bbox_min and c.bbox_max]
+    if not boxes:
+        return {"center": [0.0, 0.0, 0.0], "size": 10.0}
+    lows = [min(c.bbox_min[i] for c in boxes) for i in range(3)]
+    highs = [max(c.bbox_max[i] for c in boxes) for i in range(3)]
+    size = max(highs[i] - lows[i] for i in range(3)) or 1.0
+    return {"center": [(lows[i] + highs[i]) / 2 for i in range(3)], "size": size}
+
+
+async def _map_selection_highlights(query, components, highlight_faces, highlight_edges):
+    """Resolve highlight centres to real worker selections; never draw markers."""
+    requested = ([("faces", point) for point in highlight_faces] +
+                 [("edges", point) for point in highlight_edges])
+    if not requested:
+        return []
+    catalog = []
+    for component in components:
+        for kind in ("faces", "edges"):
+            listing = await query({"kind": kind, "component": component,
+                                   "limit": 1000, "offset": 0})
+            for item in listing.get("items", []):
+                center = item.get("center")
+                if isinstance(center, dict):
+                    center = [center.get(k, 0.0) for k in ("x", "y", "z")]
+                if isinstance(center, list) and len(center) == 3:
+                    catalog.append((kind, [float(v) for v in center], component,
+                                    int(item.get("index"))))
+    picks = {}
+    for kind, point in requested:
+        best = None
+        for entry_kind, center, component, index in catalog:
+            if entry_kind != kind:
+                continue
+            distance = sum((a - b) ** 2 for a, b in zip(center, point))
+            if best is None or distance < best[0]:
+                best = (distance, component, index)
+        if best is None or best[0] > 1e-6:
+            raise ValueError("高亮中心与当前拓扑不匹配；重新 list_faces/list_edges 获取当前中心后再渲染")
+        picks.setdefault((best[1], kind), []).append(best[2])
+    selections = []
+    for (component, kind), indices in picks.items():
+        result = await query({"kind": "render_selection", "component": component,
+                              "faces" if kind == "faces" else "edges": sorted(set(indices))})
+        selections.extend(result.get("selections", []))
+    return selections
+
+
+async def official_model(job, config, messages, tool_specs):
+    """One accounted provider request; the parent owns credentials and budget."""
+    if job.cancelled:
+        raise asyncio.CancelledError("Native AI job cancelled")
+    if job.cost >= float(config.get("job_soft_limit_cny", 4)):
+        raise BudgetExceeded("本任务累计费用上限已到")
+    index = config["budget"].reserve(
+        config["pricing"]["model"], output_limit(config), "native-ai/" + job.id
+    )
+    await asyncio.to_thread(config["budget"].wait_for_slot)
+    if job.cancelled:
+        raise asyncio.CancelledError("Native AI job cancelled")
+    async with httpx.AsyncClient(timeout=float(config.get("model_timeout", 300))) as client:
+        response = await client.post(
+            config["base_url"].rstrip("/") + "/chat/completions",
+            headers={"Authorization": "Bearer " + config["api_key"]},
+            json={
+                "model": config["pricing"]["model"],
+                "messages": messages,
+                "tools": tool_specs,
+                "tool_choice": "auto",
+                "max_tokens": output_limit(config),
+                "temperature": float(config.get("temperature", 0.6)),
+                "top_p": float(config.get("top_p", 0.95)),
+                "chat_template_kwargs": {"enable_thinking": True},
+            },
+        )
+    response.raise_for_status()
+    data = response.json()
+    job.calls += 1
+    job.segment_calls += 1
+    config["budget"].settle(index, data.get("usage"), data.get("model"))
+    if not data.get("usage"):
+        raise BudgetExceeded("本次调用缺少费用信息，已保留预算预留；请核对后处理")
+    usage = data["usage"]
+    job.cost += (
+        usage.get("prompt_tokens", 0) * config["pricing"]["input_cny_per_million"]
+        + usage.get("completion_tokens", 0) * config["pricing"]["output_cny_per_million"]
+    ) / 1e6
+    return data
+
+
+async def run_official(job, config):
+    """One official AgenticCADedit segment over native ACIS callbacks."""
+    from .ai_agentic import AgenticCallbacks, run_agentic
+
+    job.segment_limit = max(1, min(int(config.get("max_calls", 20)), 100))
+    job.segment_calls = 0
+
+    async def execute(action, params):
+        validate_command(action, params, job)
+        return await native_command(job, action, params)
+
+    async def geometry_query(request):
+        validate_query(request, {c.hash_sat for c in job.manifest})
+        pool = get_worker_pool()
+        try:
+            return await asyncio.wait_for(
+                pool.query("ai-" + job.id, len(job.trace) + 1, job.manifest, request),
+                NATIVE_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError as error:
+            await pool.release("ai-" + job.id)
+            raise RuntimeError("几何查询超过60秒，候选 worker 已停止") from error
+
+    async def render_views(views, highlight_faces, highlight_edges):
+        if not job.manifest:
+            raise ValueError("空预览没有可渲染的几何")
+        assets = get_component_store()
+        parts = [assets.read("sat", c.hash_sat) for c in job.manifest]
+        if any(part is None for part in parts):
+            raise ValueError("预览几何资产缺失，无法渲染")
+        highlights = await _map_selection_highlights(
+            geometry_query, [c.hash_sat for c in job.manifest],
+            highlight_faces or [], highlight_edges or [])
+        stl = await asyncio.to_thread(get_worker_gateway().export_stl, parts)
+        with tempfile.TemporaryDirectory(prefix="rcad_render_") as folder:
+            source = Path(folder) / "scene.stl"
+            source.write_bytes(stl)
+            spec = Path(folder) / "spec.json"
+            spec.write_text(json.dumps({"views": views, "camera": _world_frame(job),
+                                        "highlights": highlights}, ensure_ascii=False))
+            prefix = Path(folder) / "view"
+            process = await asyncio.create_subprocess_exec(
+                config["render_python"],
+                str(Path(__file__).with_name("ai_render_views.py")),
+                str(source), str(spec), str(prefix),
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                _, stderr = await asyncio.wait_for(process.communicate(), 90)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                raise RuntimeError("多视图渲染超时")
+            images = sorted(Path(folder).glob("view*.png"))
+            if process.returncode or len(images) != len(views):
+                raise RuntimeError("多视图渲染失败：" + stderr.decode(errors="replace")[-300:])
+            return [base64.b64encode(image.read_bytes()).decode() for image in images]
+
+    async def model(messages, tool_specs):
+        return await official_model(job, config, messages, tool_specs)
+
+    async def export_step(output_dir):
+        if not job.manifest:
+            return {"ok": False, "error": "预览没有可导出的几何"}
+        assets = get_component_store()
+        parts = [assets.read("sat", c.hash_sat) for c in job.manifest]
+        if any(part is None for part in parts):
+            return {"ok": False, "error": "预览几何资产缺失，无法导出"}
+        step = await asyncio.to_thread(get_worker_gateway().export_step, parts)
+        destination = Path(output_dir) / "preview.step"
+        destination.write_bytes(step)
+        return {"ok": True, "step_path": str(destination), "bytes": len(step)}
+
+    def checkpoint():
+        persist(job)
+
+    try:
+        result = await run_agentic(job, config, AgenticCallbacks(
+            execute=execute, query=geometry_query, render=render_views, model=model,
+            export_step=export_step, checkpoint=checkpoint))
+        _finalize_official(job, result)
+        job.trace.append({
+            "step": len(job.trace) + 1, "tool": "official_segment", "outcome": "ok",
+            "detail": json.dumps({k: result.get(k) for k in (
+                "finished", "success", "exit_reason", "framework", "adapter", "step_exported")},
+                ensure_ascii=False),
+        })
+    except asyncio.CancelledError:
+        job.status = "cancelled"
+        job.summary = "已停止，未应用的预览已取消"
+        raise
+    except BudgetExceeded as error:
+        job.status, job.pause_reason = "paused", "budget_limit"
+        job.summary = str(error) + "；中间预览与完整对话已保留，可核对预算后继续，正式模型未修改"
+    except Exception as error:
+        job.status = "failed"
+        job.summary = "官方框架段失败（" + type(error).__name__ + "），正式模型未修改"
+    finally:
+        try:
+            await get_worker_pool().release("ai-" + job.id)
+        finally:
+            persist(job)
+
+
 def _atomic_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
@@ -687,6 +956,8 @@ def restore_job(project, job_id):
             "id", "project", "base", "instruction", "selected", "created", "status", "summary",
             "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
             "segment_limit", "pause_reason", "model", "ledger")}
+        fields.update({key: payload.get(key, default) for key, default in (
+            ("framework", "native"), ("parent_job_id", None), ("conversation_id", job_id), ("agentic_state", {}))})
         if fields["status"] not in {"paused", "ready", "failed", "cancelled", "applied"}:
             return None
         fields["original"] = [SceneComponent(**c) for c in payload["original"]]
@@ -709,7 +980,8 @@ def persist(job):
                 payload = {key: getattr(job, key) for key in (
                     "id", "project", "base", "instruction", "selected", "created", "status", "summary",
                     "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
-                    "segment_limit", "pause_reason", "model", "ledger", "projections")}
+                    "segment_limit", "pause_reason", "model", "ledger", "projections",
+                    "framework", "parent_job_id", "conversation_id", "agentic_state")}
                 payload.update(schema_version=1,
                     original=[asdict(c) for c in job.original], manifest=[asdict(c) for c in job.manifest],
                     history=[[asdict(c) for c in stage] for stage in job.history])

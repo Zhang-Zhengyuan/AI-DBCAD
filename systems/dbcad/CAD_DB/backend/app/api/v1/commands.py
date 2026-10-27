@@ -10,10 +10,11 @@ Onshape 同款）；redo 弹出撤销栈。
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 
 from ...command_result import manifest_from_result
+from ...cad_contract import ADVANCED_COMMAND_SCHEMAS, validate_advanced, validate_query
 from ...dependencies import verify_api_password
 from ...entity_projection import write_projections
 from ...events_hub import hub
-from ...v1_store import MemoryV1Store, SceneComponent, V1Version, get_v1_store
+from ...v1_store import MemoryV1Store, V1Version, get_v1_store
 from ...worker_client import WorkerError as _BatchWorkerError
 from ...worker_pool import WorkerError, get_worker_pool
 from .projects import _project_or_404
@@ -99,6 +100,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "params": {"targets": {"type": "array<string>", "required": True}},
     },
 }
+COMMAND_SCHEMAS.update(ADVANCED_COMMAND_SCHEMAS)
 
 
 def _referenced_components(action: str, params: dict) -> set[str]:
@@ -136,11 +138,39 @@ def _validate(action: str, params: dict) -> None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"missing required params: {missing}"
         )
+    if action in ADVANCED_COMMAND_SCHEMAS:
+        try:
+            validate_advanced(action, params)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
 
 @router.get("/schema/commands")
 def command_schemas() -> dict:
     return {"schema": "dbcad.commands/1", "commands": COMMAND_SCHEMAS}
+
+
+@router.post("/projects/{project_id}/geometry/query")
+async def geometry_query(project_id: str, payload: dict = Body(...)) -> dict:
+    """Read the captured current geometry without adding a project version."""
+    _project_or_404(project_id)
+    if set(payload) - {"base_version", "query"}:
+        raise HTTPException(422, "Unknown geometry query fields")
+    head = get_v1_store().latest(project_id)
+    version = head.number if head else None
+    if "base_version" in payload and payload["base_version"] != version:
+        raise HTTPException(409, {"reason": "stale_base_version", "current_head": version})
+    components = list(head.components) if head else []
+    query = payload.get("query", {})
+    try:
+        validate_query(query, {c.hash_sat for c in components})
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    try:
+        result = await get_worker_pool().query(project_id, version or 0, components, query)
+    except (WorkerError, _BatchWorkerError) as exc:
+        raise HTTPException(502, f"geometry worker failed: {exc}") from exc
+    return {"project_id": project_id, "source_version": version, "result": result}
 
 
 @router.post("/projects/{project_id}/commands/dry-run")

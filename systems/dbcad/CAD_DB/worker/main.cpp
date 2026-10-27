@@ -461,6 +461,42 @@ int exportStl(const std::vector<fs::path>& inputs, const fs::path& output) {
     return 0;
 }
 
+int exportStep(const std::vector<fs::path>& inputs, const fs::path& output) {
+#if DBCAD_HAS_INTEROP
+    ENTITY_LIST entities;
+    for (const auto& path : inputs) {
+        ENTITY_LIST part;
+        if (!restoreEntityList(path, part)) {
+            for (ENTITY* entity = entities.first(); entity; entity = entities.next()) api_del_entity(entity);
+            return fail("STEP export: SAT restore failed: " + path.string());
+        }
+        for (ENTITY* entity = part.first(); entity; entity = part.next()) entities.add(entity);
+    }
+    if (entities.count() == 0) return fail("STEP export: input contained no entities");
+    bool success = false;
+    {
+        SPAIAcisDocument source(&entities);
+        SPAIDocument target(output.string().c_str());
+        SPAIConverter converter;
+        SPAIOptions options;
+        SPAIValue representation("BRep+Assembly");
+        options.Add(SPAIOptionName::Representation, representation);
+        SPAIResult result = converter.SetOptions(options);
+        result &= converter.Convert(source, target);
+        success = result.IsSuccess();
+    }
+    for (ENTITY* entity = entities.first(); entity; entity = entities.next()) api_del_entity(entity);
+    if (!success) return fail("STEP export conversion failed");
+    std::string bytes;
+    if (!fileBytes(output, bytes) || bytes.find("ISO-10303-21;") == std::string::npos)
+        return fail("STEP export did not produce an ISO-10303-21 file");
+    return 0;
+#else
+    (void)inputs; (void)output;
+    return fail("STEP export not compiled (Spatial InterOp missing)");
+#endif
+}
+
 // ---- P2 serve 模式：常驻行协议 ------------------------------------------
 int serveLoop() {
     using dbcad::worker::GeometrySession;
@@ -498,6 +534,11 @@ int serveLoop() {
                     throw std::runtime_error("no open session");
                 const std::string result = session->exec(request.at("command").dump());
                 response = {{"id", id}, {"ok", true}, {"result", json::parse(result)}};
+            } else if (op == "query") {
+                if (!session || !session->opened())
+                    throw std::runtime_error("no open session");
+                response = {{"id", id}, {"ok", true},
+                            {"result", json::parse(session->query(request.at("query").dump()))}};
             } else if (op == "close") {
                 session.reset();
                 response = {{"id", id}, {"ok", true}};
@@ -543,6 +584,19 @@ int main(int argc, char** argv) {
         }
         code = inputs.empty() ? fail("empty --sat-list") : mergeSat(inputs, argv[5]);
     } else if (argc == 6 && command == "export" && std::string(argv[2]) == "--sat-list" &&
+               std::string(argv[4]) == "--step-out") {
+        std::vector<fs::path> inputs;
+        const std::string list = argv[3];
+        size_t start = 0;
+        while (start <= list.size()) {
+            const size_t comma = list.find(',', start);
+            const std::string one = list.substr(start, comma == std::string::npos ? comma : comma - start);
+            if (!one.empty()) inputs.push_back(one);
+            if (comma == std::string::npos) break;
+            start = comma + 1;
+        }
+        code = inputs.empty() ? fail("empty --sat-list") : exportStep(inputs, argv[5]);
+    } else if (argc == 6 && command == "export" && std::string(argv[2]) == "--sat-list" &&
                std::string(argv[4]) == "--stl-out") {
         std::vector<fs::path> inputs;
         std::string list = argv[3];
@@ -576,6 +630,7 @@ int main(int argc, char** argv) {
                      "usage: dbcad_worker import --sat <p.sat|p.step|p.stp> --outdir <dir>\n"
                      "       dbcad_worker merge --sat-list <a,b> --out <p>\n"
                      "       dbcad_worker export --sat-list <a,b> --glb-out <p>\n"
+                     "       dbcad_worker export --sat-list <a,b> --step-out <p.step>\n"
                      "       dbcad_worker selftest\n");
     }
 

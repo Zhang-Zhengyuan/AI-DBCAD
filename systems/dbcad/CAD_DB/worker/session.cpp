@@ -30,6 +30,19 @@
 #include "acis/include/transf.hxx"
 #include "acis/include/transfrm.hxx"
 #include "acis/include/vers.hxx"
+#include "acis/include/blendapi.hxx"
+#include "acis/include/coverapi.hxx"
+#include "acis/include/queryapi.hxx"
+#include "acis/include/mprop.hxx"
+#include "acis/include/insanity_list.hxx"
+#include "acis/include/lump.hxx"
+#include "acis/include/shell.hxx"
+#include "acis/include/surface.hxx"
+#include "acis/include/plane.hxx"
+#include "acis/include/cone.hxx"
+#include "acis/include/ellipse.hxx"
+#include "acis/include/sweepapi.hxx"
+#include "acis/include/shl_api.hxx"
 #include "kernel/acis_primitives.inc"
 
 #include <cmath>
@@ -37,6 +50,9 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <memory>
+#include <set>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -320,6 +336,11 @@ std::string GeometrySession::exec(const std::string& commandJson) {
     const std::string action = command.at("action").get<std::string>();
     const json& params = command.contains("params") ? command.at("params") : json::object();
 
+    if (action == "component.fillet" || action == "component.chamfer" ||
+        action == "component.extrude" || action == "component.revolve" ||
+        action == "component.sweep" || action == "component.shell")
+        return execAdvanced(commandJson);
+
     json result = {{"added", json::array()}, {"modified", json::array()}, {"removed", json::array()}};
 
     auto removeComponent = [&](ComponentRef* component) {
@@ -516,5 +537,7 @@ std::string GeometrySession::exec(const std::string& commandJson) {
 
     throw CommandError("unknown action: " + action);
 }
+
+#include "agent_geometry.inc"
 
 }  // namespace dbcad::worker

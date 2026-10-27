@@ -47,6 +47,9 @@ public:
     // 失败抛 CommandError（命令原子性尽力而为：失败后网关应重建会话）。
     std::string exec(const std::string& commandJson);
 
+    // Read-only geometric observations; never emits assets or publishes a version.
+    std::string query(const std::string& queryJson);
+
     bool opened() const { return opened_; }
 
 private:
@@ -56,6 +59,7 @@ private:
     int nextNewSid_ = 0;
 
     ComponentRef* find(const std::string& sid);
+    std::string execAdvanced(const std::string& commandJson);
     // prevIds：命令前组件闭包（P8/Phase D 稳定身份），emit 的 graph 节点
     // 携带 prev_id generation 链；空指针 = 新组件无前驱。
     std::string emitComponent(ComponentRef& component, bool added,
