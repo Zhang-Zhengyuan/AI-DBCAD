@@ -74,7 +74,17 @@ def main(spec_path):
         def create_messages(self, inputs, sys=None):
             if self.seed is not None:
                 messages, self.seed = self.seed, None
-                return messages
+                # Upstream assembles [system, user(conversation_instruction, ...)] via
+                # create_messages; a seeded job (image input or resume) bypasses that,
+                # so re-inject the native API prompt exactly once per conversation.
+                head = json.dumps(messages[:2], ensure_ascii=False)
+                has_native = "AgenticCADedit ACIS-native CAD editing assistant" in head
+                has_system = bool(messages) and messages[0].get("role") == "system"
+                prefix = [] if has_system else [{"role": "system", "content": sys or ""}]
+                if not has_native:
+                    prefix.append({"role": "user", "content": spec["prompt"]
+                                   + "\nInstruction and any reference inputs follow."})
+                return prefix + messages
             return super().create_messages(inputs, sys=sys)
 
         def request_tool_turn(self, messages, tool_specs):

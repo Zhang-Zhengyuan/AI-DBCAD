@@ -12,7 +12,7 @@ ResumaCAD 研究共享 CAD 项目经历人工编辑、需求更新和暂停/恢�
 
 DBCAD v3 底座、neuralCAD-Edit/AgenticCADedit 复现环境和三 harness 单请求对照已有结果；它们不能证明长期证据失效的普遍性，也不能证明候选方法有效。EXP-002 已用独立几何真值和成对外部变化观察到旧数值误用案例；按需重查也是有效且廉价的强基线，后续方法必须正面比较。
 
-AI-CAD-agent 底层框架已选定（EXP-003）：官方 AgenticCADedit 循环经 `agenticcadedit-acis/1` 适配器接入 DBCAD/ACIS，含精确面边查询、选区高亮、拉伸/旋转/扫掠、圆角/倒角与阶段化连续对话；IterCAD 经审计不接入，保留为外部对照。
+AI-CAD-agent 底层框架已选定（EXP-003）：官方 AgenticCADedit 循环经 `agenticcadedit-acis/1` 适配器接入 DBCAD/ACIS，含精确面边查询、选区高亮、拉伸/旋转/扫掠、圆角/倒角与阶段化连续对话；IterCAD 经审计不接入，保留为外部对照。AI 面板支持自定义 provider/模型选择（仅 VLM 探针通过可选）与图纸图片输入（Issue #28）。
 
 不宣称“首次多轮 CAD”或“首次长时程 CAD”。已有 mrCAD、CADWorld、HistCAD、Concord/TRACE 等近邻工作需要明确比较；合法需求更新与误用旧观测须分别评价。新颖性、实际错误率和完整成本仍需核实。
 

@@ -121,6 +121,7 @@ class Job:
     parent_job_id: str | None = None
     conversation_id: str = ""
     agentic_state: dict = field(default_factory=dict)
+    provider_id: str | None = None
 
     def public(self):
         return {
@@ -142,6 +143,7 @@ class Job:
             "framework": self.framework,
             "parent_job_id": self.parent_job_id,
             "conversation_id": self.conversation_id or self.id,
+            "provider_id": self.provider_id,
             "scene": {
                 "project_id": self.project,
                 "version": self.base or 0,
@@ -189,8 +191,56 @@ def make_room():
         raise HTTPException(429, "未完成的 AI 预览过多，请先应用或放弃已有预览")
 
 
-async def start(project, base, instruction, selected, parent_job_id=None):
+def resolve_runtime_config(config, provider_id, model):
+    """Clone the env config onto a stored provider/model with its own ledger.
+
+    Only VLM-verified models with explicit pricing may run: the budget ledger
+    pins its pricing per file, so custom usage stays separate from the research
+    budget instead of mixing unverifiable prices into it.
+    """
+    from . import ai_provider_store as store
+
+    if not provider_id and not model:
+        return config
+    if not model:
+        raise HTTPException(422, "自定义 provider 必须同时选择模型")
+    if provider_id == store.DEFAULT_ID and model == config["pricing"]["model"]:
+        return config
+    provider_id = provider_id or store.DEFAULT_ID
+    record = store.get_provider(provider_id)
+    entry = ((record or {}).get("models") or {}).get(model)
+    if not entry or entry.get("vlm") is not True:
+        raise HTTPException(422, f"模型 {model} 未通过 VLM 探测，不能选择；请先在设置里检测")
+    if "input_cny_per_million" not in entry or "output_cny_per_million" not in entry:
+        raise HTTPException(422, f"模型 {model} 缺少已填单价，不能开始付费任务")
+    if provider_id == store.DEFAULT_ID:
+        base_url, api_key, limit = config["base_url"].rstrip("/"), config["api_key"], 100.0
+    else:
+        if not record.get("api_key"):
+            raise HTTPException(422, "该 provider 缺少 API key")
+        base_url, api_key = record["base_url"], record["api_key"]
+        limit = float(record.get("budget_limit_cny", 100))
+    pricing = {"model": model,
+               "input_cny_per_million": float(entry["input_cny_per_million"]),
+               "output_cny_per_million": float(entry["output_cny_per_million"]),
+               "context_tokens": int(entry.get("context_tokens", 262144)),
+               "source": f"user provider {provider_id}"}
+    runtime = dict(config)
+    runtime.update(base_url=base_url, api_key=api_key, pricing=pricing,
+                   budget=Budget(str(store.ledger_path(provider_id, model)), limit, pricing))
+    return runtime
+
+
+async def start(project, base, instruction, selected, parent_job_id=None,
+                images=None, provider_id=None, model=None):
     config = configuration()
+    config = resolve_runtime_config(config, provider_id, model)
+    framework = config.get("framework", "native")
+    if images:
+        if framework != "agenticcadedit-acis":
+            raise HTTPException(422, "图片输入目前仅在官方 AgenticCADedit 框架下可用")
+        from . import ai_provider_store as store
+        images = store.decode_data_urls(images)
     check_running(project)
     head, components = _head(project)
     if base != head:
@@ -198,7 +248,6 @@ async def start(project, base, instruction, selected, parent_job_id=None):
     if set(selected) - {c.hash_sat for c in components}:
         raise HTTPException(422, "所选组件不属于当前版本")
     parent = None
-    framework = config.get("framework", "native")
     if parent_job_id:
         parent = find_job(project, parent_job_id)
         if parent.status != "applied" or parent.framework != "agenticcadedit-acis" or framework != parent.framework:
@@ -213,6 +262,7 @@ async def start(project, base, instruction, selected, parent_job_id=None):
     job.model = config["pricing"]["model"]
     job.ledger = str(config["budget"].path.resolve())
     job.framework = framework
+    job.provider_id = provider_id or None
     job.conversation_id = parent.conversation_id or parent.id if parent else job.id
     if parent:
         job.parent_job_id = parent.id
@@ -225,6 +275,16 @@ async def start(project, base, instruction, selected, parent_job_id=None):
             f"保留仍生效的要求，按本次要求更新；本阶段要求：{instruction}"})
         job.trace.append({"step": 1, "tool": "conversation", "outcome": "ok",
                           "detail": f"继承父阶段 {parent.id} 的对话；在当前版本 {base} 上重新建立几何绑定"})
+    if images:
+        # The official loop seeds from job.messages; a multimodal user message puts
+        # the reference images into the very context the upstream loop manages.
+        content = [{"type": "text", "text": instruction +
+                    "\n随指令附有参考图片（图纸/照片，均为需求参考，不是当前模型几何）。"
+                    "先检查当前场景，再结合图片制定建模步骤并验证。"}]
+        content += [{"type": "image_url", "image_url": {"url": image}} for image in images]
+        job.messages.append({"role": "user", "content": content})
+        job.trace.append({"step": len(job.trace) + 1, "tool": "images", "outcome": "ok",
+                          "detail": f"附带 {len(images)} 张参考图片进入官方循环上下文"})
     jobs[job.id] = job
     job.task = asyncio.create_task(run(job, config))
     return job
@@ -240,7 +300,8 @@ async def resume(job, instruction=""):
     if head != job.base:
         raise HTTPException(409, {"reason": "stale_base_version", "current_head": head})
     check_running(job.project)
-    config = configuration()
+    config = resolve_runtime_config(configuration(), job.provider_id,
+                                    job.model if job.provider_id else None)
     if (job.model != config["pricing"]["model"] or
             job.ledger != str(config["budget"].path.resolve()) or job.framework != config.get("framework", "native")):
         raise HTTPException(409, "模型或预算账本已改变，不能把旧任务当成新额度继续")
@@ -957,7 +1018,8 @@ def restore_job(project, job_id):
             "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
             "segment_limit", "pause_reason", "model", "ledger")}
         fields.update({key: payload.get(key, default) for key, default in (
-            ("framework", "native"), ("parent_job_id", None), ("conversation_id", job_id), ("agentic_state", {}))})
+            ("framework", "native"), ("parent_job_id", None), ("conversation_id", job_id),
+            ("agentic_state", {}), ("provider_id", None))})
         if fields["status"] not in {"paused", "ready", "failed", "cancelled", "applied"}:
             return None
         fields["original"] = [SceneComponent(**c) for c in payload["original"]]
@@ -981,7 +1043,8 @@ def persist(job):
                     "id", "project", "base", "instruction", "selected", "created", "status", "summary",
                     "trace", "cancelled", "calls", "cost", "version", "messages", "segment_calls",
                     "segment_limit", "pause_reason", "model", "ledger", "projections",
-                    "framework", "parent_job_id", "conversation_id", "agentic_state")}
+                    "framework", "parent_job_id", "conversation_id", "agentic_state",
+                    "provider_id")}
                 payload.update(schema_version=1,
                     original=[asdict(c) for c in job.original], manifest=[asdict(c) for c in job.manifest],
                     history=[[asdict(c) for c in stage] for stage in job.history])

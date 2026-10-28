@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type AIJob, type AIStatus } from "./api";
+import { api, ApiError, type AIJob, type AIStatus, type AIProvider, type ProviderModel } from "./api";
 import { useViewer } from "./store";
 
 export function AIPanel() {
@@ -13,7 +13,22 @@ export function AIPanel() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [providers, setProviders] = useState<AIProvider[]>([]);
+  const [activePid, setActivePid] = useState(() => localStorage.getItem("resumacad.pid") || "default");
+  const [models, setModels] = useState<ProviderModel[] | null>(null);
+  const [modelSel, setModelSel] = useState(() => localStorage.getItem("resumacad.model") || "");
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [draft, setDraft] = useState({ label: "", base_url: "", api_key: "", limit: "100" });
+  const [price, setPrice] = useState({ input: "", output: "" });
+  const [images, setImages] = useState<string[]>([]);
   useEffect(() => { void api.aiStatus().then(setStatus).catch(() => setStatus(null)); }, []);
+  useEffect(() => { void api.aiProviders().then(d => setProviders(d.providers)).catch(() => {}); }, []);
+  useEffect(() => {
+    setModels(null);
+    void api.aiModels(activePid).then(d => setModels(d.models)).catch(e => setError(String(e)));
+    localStorage.setItem("resumacad.pid", activePid);
+  }, [activePid]);
+  useEffect(() => { if (modelSel) localStorage.setItem("resumacad.model", modelSel); else localStorage.removeItem("resumacad.model"); }, [modelSel]);
   useEffect(() => {
     setJob(null); setError(""); setContinuation(""); setRestoring(false);
     useViewer.getState().setAIPreview(null);
@@ -51,7 +66,10 @@ export function AIPanel() {
     if (!project) return;
     setBusy(true); setError("");
     try {
-      const fresh = await api.aiStart(project.id, instruction, project.head_version, selected);
+      const fresh = await api.aiStart(project.id, instruction, project.head_version, selected, {
+        ...(modelSel ? { provider_id: activePid, model: modelSel } : {}),
+        ...(images.length ? { images } : {}),
+      });
       sessionStorage.setItem(`inferracad.ai.${project.id}`, fresh.id);
       if (useViewer.getState().activeProject?.id === project.id) setJob(fresh);
     } catch (e) { setError(String(e)); }
@@ -85,17 +103,137 @@ export function AIPanel() {
     } catch (e) { setError(`继续失败，未完成预览仍保留：${String(e)}`); }
     finally { setBusy(false); }
   };
+  const activeProvider = providers.find(p => p.id === activePid);
+  const selectedModel = models?.find(m => m.id === modelSel) ?? null;
+  const saveProvider = async () => {
+    setSettingsBusy(true); setError("");
+    try {
+      const saved = await api.aiSaveProvider({
+        label: draft.label.trim() || "自定义接口",
+        base_url: draft.base_url.trim().replace(/\/+$/, ""),
+        api_key: draft.api_key.trim(),
+        budget_limit_cny: Number(draft.limit) || 100,
+      });
+      setProviders((await api.aiProviders()).providers);
+      setActivePid(saved.id); setModelSel("");
+      setDraft({ label: "", base_url: "", api_key: "", limit: "100" });
+    } catch (e) { setError(String(e)); } finally { setSettingsBusy(false); }
+  };
+  const probe = async (model: string) => {
+    setSettingsBusy(true); setError("");
+    try {
+      await api.aiProbe(activePid, model);
+      setModels((await api.aiModels(activePid)).models);
+    } catch (e) { setError(String(e)); } finally { setSettingsBusy(false); }
+  };
+  const savePrice = async () => {
+    if (!modelSel) return;
+    setSettingsBusy(true); setError("");
+    try {
+      await api.aiModelPricing(activePid, modelSel, {
+        input_cny_per_million: Number(price.input), output_cny_per_million: Number(price.output),
+      });
+      setModels((await api.aiModels(activePid)).models);
+    } catch (e) { setError(String(e)); } finally { setSettingsBusy(false); }
+  };
+  const readAsDataURL = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error(`读取 ${file.name} 失败`));
+    reader.readAsDataURL(file);
+  });
+  const addImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files)
+      .filter(f => f.type === "image/png" || f.type === "image/jpeg")
+      .slice(0, 3 - images.length);
+    for (const file of picked) if (file.size > 2_500_000) setError(`${file.name} 超过 2.5MB，已跳过`);
+    const readable = picked.filter(f => f.size <= 2_500_000);
+    if (readable.length) {
+      const urls = await Promise.all(readable.map(readAsDataURL));
+      setImages(prev => [...prev, ...urls].slice(0, 3));
+    }
+  };
   const running = job?.status === "running";
   const paused = job?.status === "paused";
   const stale = !!job && !!project && project.head_version !== job.base_version;
   return <section className="ai-panel" aria-label="AI CAD 编辑">
     <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
-    <p className="ai-model">{status?.enabled ? status.model : "AI 尚未配置"}</p>
-    <p>用自然语言创建或修改模型。支持图元、移动、缩放和布尔运算。</p>
+    <p className="ai-model">
+      {status?.enabled
+        ? `${status.framework_label ? status.framework_label + " · " : ""}${modelSel ? `${modelSel}（已选）` : status.model}`
+        : "AI 尚未配置"}
+    </p>
+    <details className="ai-settings">
+      <summary>接口与模型{modelSel ? `：${modelSel}` : "：跟随本机默认"}</summary>
+      <div className="ai-settings-body">
+        <label>Provider
+          <select value={activePid} onChange={e => { setActivePid(e.target.value); setModelSel(""); }}>
+            {providers.map(p => (
+              <option key={p.id} value={p.id}>{p.label || p.id}{p.id === "default" ? "（本机 env 默认）" : ""}</option>
+            ))}
+          </select>
+        </label>
+        {activeProvider && activeProvider.id !== "default" &&
+          <p className="ai-hint">{activeProvider.base_url} · key {activeProvider.key_hint || "（未存）"} · 独立预算 ¥{activeProvider.budget_limit_cny}</p>}
+        {models === null ? <p className="ai-hint">正在获取模型列表…</p> : <>
+          <label>模型（仅可选通过 VLM 探测并已填单价的）
+            <select value={modelSel} onChange={e => setModelSel(e.target.value)}>
+              <option value="">（默认：{activeProvider?.default_model ?? status?.model ?? "未配置"}）</option>
+              {models.map(m => (
+                <option key={m.id} value={m.id} disabled={!(m.vlm === true && m.pricing)}>
+                  {m.id}{m.vlm === true ? (m.pricing ? " ✓" : "（缺单价）") : m.vlm === false ? "（不支持图片/工具）" : "（未检测）"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="ai-settings-row">
+            <button type="button" disabled={!modelSel || settingsBusy} onClick={() => void probe(modelSel)}>检测 VLM</button>
+            <span className="ai-hint">检测发起一次极小的图片+工具请求（消耗少量 token），通过才可选。</span>
+          </div>
+          {selectedModel?.vlm === true && !selectedModel?.pricing && modelSel && (
+            <div className="ai-settings-row">
+              <span>单价（元/百万 token）：输入
+                <input value={price.input} onChange={e => setPrice({ ...price, input: e.target.value })} size={6} inputMode="decimal" />
+                输出
+                <input value={price.output} onChange={e => setPrice({ ...price, output: e.target.value })} size={6} inputMode="decimal" />
+              </span>
+              <button type="button" disabled={settingsBusy || !(Number(price.input) > 0) || !(Number(price.output) > 0)} onClick={() => void savePrice()}>保存单价</button>
+            </div>
+          )}
+          {selectedModel?.probe_error && <p className="ai-hint">探测信息：{selectedModel.probe_error.slice(0, 120)}</p>}
+        </>}
+        <details><summary>新增自定义 provider（base_url + API key）</summary>
+          <div className="ai-settings-body">
+            <label>名称 <input value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })} placeholder="如 我的中转" /></label>
+            <label>Base URL（必须 https） <input value={draft.base_url} onChange={e => setDraft({ ...draft, base_url: e.target.value })} placeholder="https://example.com/v1" /></label>
+            <label>API Key（只写入本机 0600 文件，保存后不再回显） <input type="password" value={draft.api_key} onChange={e => setDraft({ ...draft, api_key: e.target.value })} /></label>
+            <label>独立预算上限（元） <input value={draft.limit} onChange={e => setDraft({ ...draft, limit: e.target.value })} size={6} inputMode="decimal" /></label>
+            <button type="button" className="primary" disabled={settingsBusy || !draft.base_url.trim().startsWith("https://") || draft.api_key.trim().length < 8} onClick={() => void saveProvider()}>保存 provider</button>
+          </div>
+        </details>
+      </div>
+    </details>
+    <p>用自然语言创建或修改模型；可附带图纸图片看图建模。</p>
     <label htmlFor="ai-instruction">编辑要求</label>
     <textarea id="ai-instruction" value={instruction} onChange={e => setInstruction(e.target.value)} rows={5}
       placeholder="例如：创建一个 60×40×8 的底板，在中央打一个半径 6 的通孔。" disabled={running || busy || paused || job?.status === "ready"} />
     <p className="ai-hint">{selected.length ? `已选中 ${selected.length} 个组件` : "针对当前项目；可先选中需要修改的组件"}。结果先预览，再应用。</p>
+    <div className="ai-images">
+      {images.map((src, i) => (
+        <span key={i} className="ai-image-chip">
+          <img src={src} alt={`参考图片 ${i + 1}`} />
+          <button type="button" aria-label="移除图片" disabled={running || busy}
+            onClick={() => setImages(images.filter((_, j) => j !== i))}>×</button>
+        </span>
+      ))}
+      {images.length < 3 && status?.framework === "agenticcadedit-acis" && (
+        <label className="ai-image-add" title="PNG/JPEG，最多 3 张，单张 ≤2.5MB">＋ 图纸/照片
+          <input type="file" accept="image/png,image/jpeg" multiple hidden disabled={running || busy}
+            onChange={e => { void addImages(e.target.files); e.currentTarget.value = ""; }} />
+        </label>
+      )}
+    </div>
     <div className="ai-actions">
       <button className="primary" disabled={!project || !status?.enabled || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
         onClick={() => void start()}>{running ? "AI 正在编辑…" : "生成预览"}</button>
