@@ -16,10 +16,12 @@ export function AIPanel() {
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [activePid, setActivePid] = useState(() => localStorage.getItem("resumacad.pid") || "default");
   const [models, setModels] = useState<ProviderModel[] | null>(null);
+  const modelsOwner = useRef(activePid);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState("");
   const [modelRefresh, setModelRefresh] = useState(0);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [statusFor, setStatusFor] = useState("");
   const [statusError, setStatusError] = useState("");
   const [modelSel, setModelSel] = useState(() => localStorage.getItem("resumacad.model") || "");
   const [settingsBusy, setSettingsBusy] = useState(false);
@@ -38,7 +40,12 @@ export function AIPanel() {
   }, [modelRefresh]);
   useEffect(() => {
     let alive = true;
-    setModels(null);
+    // File pickers restore window focus. Refresh in the background without
+    // discarding a verified selection for the same provider.
+    if (modelsOwner.current !== activePid) {
+      setModels(null);
+      modelsOwner.current = activePid;
+    }
     setModelsLoading(true); setModelsError("");
     void api.aiModels(activePid).then(d => { if (alive) setModels(d.models); })
       .catch(e => { if (alive) setModelsError(String(e)); })
@@ -135,15 +142,16 @@ export function AIPanel() {
     !!selectedModel?.pricing?.output_cny_per_million && !!selectedModel?.pricing?.context_tokens;
   const isDefaultModel = activePid === "default" && !!modelSel && modelSel === activeProvider?.default_model;
   const modelEligible = modelSel ? (selectedModel?.vlm === true && hasPrice) || isDefaultModel : activePid === "default";
+  const statusRequestKey = modelEligible ? `${activePid}/${modelSel}` : "base-config";
   useEffect(() => {
     let alive = true;
     setStatusLoading(true); setStatusError("");
     void api.aiStatus(modelEligible ? activePid : undefined, modelEligible ? modelSel || undefined : undefined)
-      .then(value => { if (alive) setStatus(value); })
-      .catch(e => { if (alive) { setStatus(null); setStatusError(String(e)); } })
+      .then(value => { if (alive) { setStatus(value); setStatusFor(statusRequestKey); } })
+      .catch(e => { if (alive) { setStatus(null); setStatusFor(statusRequestKey); setStatusError(String(e)); } })
       .finally(() => { if (alive) setStatusLoading(false); });
     return () => { alive = false; };
-  }, [activePid, modelSel, modelEligible, modelRefresh]);
+  }, [activePid, modelSel, modelEligible, modelRefresh, statusRequestKey]);
   useEffect(() => {
     // A remembered model that no longer exists for this provider would keep the
     // start button dead with no visible reason; recover explicitly, not silently.
@@ -226,7 +234,7 @@ export function AIPanel() {
     : imagesLoading ? "正在读取参考图片，请稍候。"
     : settingsBusy ? "正在保存或检测模型，请稍候。"
     : modelBlockReason
-      ?? (statusLoading ? "正在检查 AI 服务，请稍候。"
+      ?? (statusFor !== statusRequestKey || (statusLoading && !status) ? "正在检查 AI 服务，请稍候。"
         : statusError ? `读取 AI 服务状态失败：${statusError}`
         : !status?.enabled ? "当前 AI 服务未就绪，请检查接口配置或刷新模型状态。"
         : instruction.trim().length < 2 ? "请输入至少两个字符的建模要求。" : null);
@@ -235,7 +243,7 @@ export function AIPanel() {
     <p className="ai-model">
       {status?.enabled
         ? `${status.framework_label ? status.framework_label + " · " : ""}${modelSel ? `${modelSel}（已选）` : status.model}`
-        : "AI 尚未配置"}
+        : statusLoading ? "正在读取 AI 配置…" : "AI 尚未配置"}
     </p>
     <details className="ai-settings" ref={settingsRef}>
       <summary>接口与模型{modelSel ? `：${modelSel}` : "：跟随本机默认"}</summary>

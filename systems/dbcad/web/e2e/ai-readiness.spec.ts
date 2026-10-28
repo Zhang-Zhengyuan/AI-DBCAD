@@ -130,3 +130,35 @@ test("切换接口后旧列表晚返回也不清除新模型选择", async ({ pa
   await expect(page.getByLabel("待配置或运行的模型")).toHaveValue("other-ready");
   await expect(page.getByRole("button", { name: "生成预览", exact: true })).toBeEnabled();
 });
+
+test("选图返回窗口触发后台刷新时，已就绪模型不会再次锁住", async ({ page }) => {
+  const p = await project(page);
+  let background = false;
+  let release!: () => void;
+  let requested!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  const seen = new Promise<void>(resolve => { requested = resolve; });
+  await page.route("**/api/v1/ai/status**", async route => {
+    if (background) await pending;
+    await route.fulfill({ json: status() });
+  });
+  await page.route("**/api/v1/ai/providers**", async route => {
+    if (route.request().url().endsWith("/models")) {
+      if (background) { requested(); await pending; }
+      await route.fulfill({ json: { models: [readyModel()] } });
+    } else await route.fulfill({ json: { providers } });
+  });
+  await seed(page);
+  await page.goto("/web/");
+  await page.getByRole("listitem").filter({ hasText: p.name }).click();
+  await page.getByLabel("编辑要求", { exact: true }).fill("参考图片建立模型");
+  await attachReference(page);
+  await expect(page.getByRole("button", { name: "生成预览", exact: true })).toBeEnabled();
+  background = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await seen;
+  try {
+    await expect(page.getByRole("button", { name: "生成预览", exact: true })).toBeEnabled();
+    await expect(page.getByAltText("参考图片 1")).toBeVisible();
+  } finally { release(); }
+});
