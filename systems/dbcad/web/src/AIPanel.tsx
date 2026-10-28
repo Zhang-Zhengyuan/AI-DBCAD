@@ -117,6 +117,14 @@ export function AIPanel() {
   useEffect(() => {
     if (modelEligible) void api.aiStatus(activePid, modelSel || undefined).then(setStatus).catch(() => {});
   }, [activePid, modelSel, modelEligible]);
+  useEffect(() => {
+    // A remembered model that no longer exists for this provider would keep the
+    // start button dead with no visible reason; recover explicitly, not silently.
+    if (models && modelSel && !selectedModel && !isDefaultModel) {
+      setModelSel("");
+      setError("之前选择的模型已不在该接口的模型列表中，已切回本机默认模型。");
+    }
+  }, [models, modelSel]);
   const saveProvider = async () => {
     setSettingsBusy(true); setError("");
     try {
@@ -257,7 +265,8 @@ export function AIPanel() {
       )}
     </div>
     <div className="ai-actions">
-      <button className="primary" disabled={!project || !status?.enabled || !modelEligible || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
+      {!modelEligible && <p role="alert" className="ai-error">所选模型尚未「VLM 检测通过 + 已配置单价」，暂不能开始。请展开“接口与模型”完成检测与单价，或把模型切回（本机默认）。</p>}
+      <button className="primary" title={modelEligible ? undefined : "模型未就绪：需 VLM 检测通过且已填单价，或选择本机默认模型"} disabled={!project || !status?.enabled || !modelEligible || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
         onClick={() => void start()}>{running ? "AI 正在编辑…" : "生成预览"}</button>
       {running && <button disabled={busy || job.cancel_requested} onClick={() => void cancel()}>停止</button>}
     </div>
