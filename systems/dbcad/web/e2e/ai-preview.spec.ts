@@ -1,5 +1,99 @@
 import { test, expect } from "@playwright/test";
 
+test("模型澄清问题可显示，人工填写回答后沿用同一任务", async ({ page }) => {
+  const headers = {"X-API-Password":"dbcad-e2e-access"};
+  const project = await (await page.request.post('/api/v1/projects', {headers,data:{name:`ai-question-${Date.now()}`}})).json();
+  const scene = await (await page.request.post(`/api/v1/projects/${project.id}/commands`,{headers,
+    data:{action:'component.create',params:{kind:'cube',width:8,height:8,depth:8}}})).json();
+  const id = 'c'.repeat(32);
+  let resumed = false;
+  await page.route('**/api/v1/ai/status**', route => route.fulfill({json:{enabled:true,model:'default-model',framework:'agenticcadedit-acis',budget:null}}));
+  await page.route('**/api/v1/ai/providers**', route => route.fulfill({json:{providers:[],models:[]}}));
+  await page.route(`**/api/v1/projects/${project.id}/ai/jobs**`, async route => {
+    if (route.request().method()==='POST') {
+      expect(route.request().url()).toContain('/resume');
+      expect(route.request().postDataJSON()).toEqual({instruction:'直径 12 mm'});
+      resumed = true;
+    }
+    await route.fulfill({json:{id,project_id:project.id,base_version:1,status:resumed?'completed':'paused',
+      pause_reason:resumed?null:'no_tool_call',can_resume:!resumed,framework:'agenticcadedit-acis',
+      summary:resumed?'已记录尺寸':'出水口直径需要多少毫米？',calls:1,estimated_cny:.01,trace:[],
+      scene:{project_id:project.id,version:1,components:scene.components}}});
+  });
+  await page.addInitScript(({pid,id}) => {sessionStorage.setItem('dbcad.password','dbcad-e2e-access');sessionStorage.setItem(`inferracad.ai.${pid}`,id);}, {pid:project.id,id});
+  await page.goto('/web/');
+  await page.getByRole('listitem').filter({hasText:project.name}).click();
+  await expect(page.getByText('出水口直径需要多少毫米？')).toBeVisible();
+  await expect(page.getByRole('button',{name:'回答并继续',exact:true})).toBeDisabled();
+  await page.getByLabel('回答或补充要求（必填）').fill('直径 12 mm');
+  await page.getByRole('button',{name:'回答并继续',exact:true}).click();
+  await expect.poll(() => resumed).toBe(true);
+  expect((await (await page.request.get(`/api/v1/projects/${project.id}`,{headers})).json()).head_version).toBe(1);
+});
+
+test("新模型能先填价检测，再启用运行", async ({ page }) => {
+  const headers = {"X-API-Password":"dbcad-e2e-access"};
+  const project = await (await page.request.post('/api/v1/projects', {headers,data:{name:`ai-provider-${Date.now()}`}})).json();
+  let pricing: object | null = null;
+  let vlm: boolean | null = null;
+  await page.route('**/api/v1/ai/status**', route => route.fulfill({json:{enabled:true,model:'default-model',framework:'agenticcadedit-acis',budget:{charged_or_reserved_cny:0,limit_cny:300}}}));
+  await page.route('**/api/v1/ai/providers**', async route => {
+    const url = route.request().url();
+    if (url.endsWith('/probe')) { expect(pricing).not.toBeNull(); vlm = true; await route.fulfill({json:{vlm:true}}); }
+    else if (route.request().method() === 'PUT') { pricing = {context_tokens:262144,...route.request().postDataJSON()}; await route.fulfill({json:{pricing}}); }
+    else if (url.endsWith('/models')) await route.fulfill({json:{models:[{id:'new-vision',vlm,pricing}]}});
+    else await route.fulfill({json:{providers:[{id:'default',label:'默认',default_model:'default-model'}, {id:'custom',label:'实验接口',base_url:'https://unit.invalid',budget_limit_cny:10}]}});
+  });
+  await page.addInitScript(() => sessionStorage.setItem('dbcad.password','dbcad-e2e-access'));
+  await page.goto('/web/');
+  await page.getByRole('listitem').filter({hasText:project.name}).click();
+  await page.locator('.ai-settings > summary').click();
+  await page.getByLabel('Provider',{exact:true}).selectOption('custom');
+  await page.getByLabel('待配置或运行的模型').selectOption('new-vision');
+  await page.getByLabel('编辑要求',{exact:true}).fill('建立一个立方体');
+  await expect(page.getByRole('button',{name:'生成预览',exact:true})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'检测 VLM'})).toBeDisabled();
+  await page.locator('.ai-settings-row input').nth(0).fill('3');
+  await page.locator('.ai-settings-row input').nth(1).fill('18');
+  await page.getByRole('button',{name:'保存单价'}).click();
+  await expect(page.getByRole('button',{name:'检测 VLM'})).toBeEnabled();
+  await page.getByRole('button',{name:'检测 VLM'}).click();
+  await expect(page.getByRole('button',{name:'生成预览',exact:true})).toBeEnabled();
+});
+
+test("人工改版本后网页新阶段继承父对话，也可显式新建", async ({ page }) => {
+  const headers = {"X-API-Password":"dbcad-e2e-access"};
+  const project = await (await page.request.post('/api/v1/projects', {headers,data:{name:`ai-parent-${Date.now()}`}})).json();
+  for (let i=0;i<2;i++) await page.request.post(`/api/v1/projects/${project.id}/commands`,{headers,data:{action:'component.create',params:{kind:'cube',width:8,height:8,depth:8,position:[20*i,0,0]}}});
+  const parent = 'a'.repeat(32);
+  let state = 'applied';
+  const observed: Record<string,unknown>[] = [];
+  await page.route('**/api/v1/ai/status**', route => route.fulfill({json:{enabled:true,model:'default-model',framework:'agenticcadedit-acis',budget:null}}));
+  await page.route('**/api/v1/ai/providers**', route => route.fulfill({json:{providers:[],models:[]}}));
+  await page.route(`**/api/v1/projects/${project.id}/ai/jobs**`, async route => {
+    if (route.request().url().endsWith('/cancel')) state='cancelled';
+    else if (route.request().method()==='POST') { observed.push(route.request().postDataJSON()); state='failed'; }
+    await route.fulfill({json:{id:parent,project_id:project.id,base_version:1,status:state,framework:'agenticcadedit-acis',summary:'已完成',calls:1,estimated_cny:.01,trace:[],scene:null}});
+  });
+  await page.addInitScript(({pid,id}) => {sessionStorage.setItem('dbcad.password','dbcad-e2e-access');sessionStorage.setItem(`inferracad.ai.${pid}`,id);}, {pid:project.id,id:parent});
+  await page.goto('/web/');
+  await page.getByRole('listitem').filter({hasText:project.name}).click();
+  await expect(page.getByLabel('对话方式')).toHaveValue('continue');
+  await page.getByLabel('编辑要求',{exact:true}).fill('保持先前要求，继续修改');
+  await page.getByRole('button',{name:'生成预览',exact:true}).click();
+  await expect.poll(() => observed.length).toBe(1);
+  expect(observed[0].parent_job_id).toBe(parent);
+  expect(observed[0].base_version).toBe(2);
+  state='applied';
+  await page.reload();
+  await page.getByRole('listitem').filter({hasText:project.name}).click();
+  await page.getByLabel('对话方式').selectOption('new');
+  await page.getByLabel('编辑要求',{exact:true}).fill('开始独立任务');
+  await page.getByRole('button',{name:'生成预览',exact:true}).click();
+  await expect.poll(() => observed.length).toBe(2);
+  expect(observed[1].parent_job_id).toBeUndefined();
+});
+
 // Provider responses are fixed here; geometry and version APIs use the real ACIS
 // worker. Paid provider/native-loop validation is recorded separately.
 test("AI 预览面板：显示候选、放弃恢复原模型，凭据留在服务端", async ({ page }) => {

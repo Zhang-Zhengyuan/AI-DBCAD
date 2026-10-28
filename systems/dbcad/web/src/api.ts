@@ -116,11 +116,12 @@ export interface ProviderModel {
   pricing: { input_cny_per_million: number; output_cny_per_million: number; context_tokens: number } | null;
 }
 export interface AIStartExtra {
-  parent_job_id?: string; images?: string[]; provider_id?: string; model?: string;
+  parent_job_id?: string; images?: string[]; provider_id?: string; model?: string; mode?: "edit" | "inspect";
 }
 export interface AIJob {
   id: string; project_id: string; base_version: number | null;
-  status: "running" | "paused" | "ready" | "applied" | "failed" | "cancelled";
+  status: "running" | "paused" | "ready" | "applied" | "completed" | "failed" | "cancelled";
+  framework?: string; parent_job_id?: string | null; conversation_id?: string; mode?: "edit" | "inspect";
   summary: string; calls: number; cancel_requested?: boolean; estimated_cny: number; scene: Scene | null;
   segment_calls?: number; segment_limit?: number; pause_reason?: string | null; can_resume?: boolean;
   instruction?: string;
@@ -128,7 +129,8 @@ export interface AIJob {
 }
 
 export const api = {
-  aiStatus: () => request<AIStatus>("/api/v1/ai/status"),
+  aiStatus: (provider?: string, model?: string) => request<AIStatus>("/api/v1/ai/status" +
+    (model ? `?provider_id=${encodeURIComponent(provider ?? "default")}&model=${encodeURIComponent(model)}` : "")),
   aiProviders: () => request<{ providers: AIProvider[] }>("/api/v1/ai/providers"),
   aiSaveProvider: (payload: { id?: string; label?: string; base_url: string; api_key?: string; budget_limit_cny?: number }) =>
     request<AIProvider>("/api/v1/ai/providers", { method: "PUT", body: JSON.stringify(payload) }),

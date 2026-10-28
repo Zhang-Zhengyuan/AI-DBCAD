@@ -21,6 +21,8 @@ export function AIPanel() {
   const [draft, setDraft] = useState({ label: "", base_url: "", api_key: "", limit: "100" });
   const [price, setPrice] = useState({ input: "", output: "" });
   const [images, setImages] = useState<string[]>([]);
+  const [continueConversation, setContinueConversation] = useState(true);
+  const [inspectOnly, setInspectOnly] = useState(false);
   useEffect(() => { void api.aiStatus().then(setStatus).catch(() => setStatus(null)); }, []);
   useEffect(() => { void api.aiProviders().then(d => setProviders(d.providers)).catch(() => {}); }, []);
   useEffect(() => {
@@ -30,7 +32,7 @@ export function AIPanel() {
   }, [activePid]);
   useEffect(() => { if (modelSel) localStorage.setItem("resumacad.model", modelSel); else localStorage.removeItem("resumacad.model"); }, [modelSel]);
   useEffect(() => {
-    setJob(null); setError(""); setContinuation(""); setRestoring(false);
+    setJob(null); setError(""); setContinuation(""); setRestoring(false); setContinueConversation(true);
     useViewer.getState().setAIPreview(null);
     if (project) {
       const saved = sessionStorage.getItem(`inferracad.ai.${project.id}`);
@@ -67,6 +69,9 @@ export function AIPanel() {
     setBusy(true); setError("");
     try {
       const fresh = await api.aiStart(project.id, instruction, project.head_version, selected, {
+        ...(continueConversation && job?.framework === "agenticcadedit-acis" &&
+            ["applied", "completed", "failed", "cancelled"].includes(job.status) ? { parent_job_id: job.id } : {}),
+        ...(inspectOnly ? { mode: "inspect" as const } : {}),
         ...(modelSel ? { provider_id: activePid, model: modelSel } : {}),
         ...(images.length ? { images } : {}),
       });
@@ -105,6 +110,13 @@ export function AIPanel() {
   };
   const activeProvider = providers.find(p => p.id === activePid);
   const selectedModel = models?.find(m => m.id === modelSel) ?? null;
+  const hasPrice = !!selectedModel?.pricing?.input_cny_per_million &&
+    !!selectedModel?.pricing?.output_cny_per_million && !!selectedModel?.pricing?.context_tokens;
+  const isDefaultModel = activePid === "default" && modelSel === (providers.find(p => p.id === "default")?.default_model ?? status?.model);
+  const modelEligible = modelSel ? (selectedModel?.vlm === true && hasPrice) || isDefaultModel : activePid === "default";
+  useEffect(() => {
+    if (modelEligible) void api.aiStatus(activePid, modelSel || undefined).then(setStatus).catch(() => {});
+  }, [activePid, modelSel, modelEligible]);
   const saveProvider = async () => {
     setSettingsBusy(true); setError("");
     try {
@@ -156,6 +168,7 @@ export function AIPanel() {
   };
   const running = job?.status === "running";
   const paused = job?.status === "paused";
+  const needsReply = paused && job.pause_reason === "no_tool_call";
   const stale = !!job && !!project && project.head_version !== job.base_version;
   return <section className="ai-panel" aria-label="AI CAD 编辑">
     <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
@@ -168,30 +181,30 @@ export function AIPanel() {
       <summary>接口与模型{modelSel ? `：${modelSel}` : "：跟随本机默认"}</summary>
       <div className="ai-settings-body">
         <label>Provider
-          <select value={activePid} onChange={e => { setActivePid(e.target.value); setModelSel(""); }}>
+          <select aria-label="Provider" value={activePid} onChange={e => { setActivePid(e.target.value); setModelSel(""); }}>
             {providers.map(p => (
               <option key={p.id} value={p.id}>{p.label || p.id}{p.id === "default" ? "（本机 env 默认）" : ""}</option>
             ))}
           </select>
         </label>
         {activeProvider && activeProvider.id !== "default" &&
-          <p className="ai-hint">{activeProvider.base_url} · key {activeProvider.key_hint || "（未存）"} · 独立预算 ¥{activeProvider.budget_limit_cny}</p>}
+          <p className="ai-hint">{activeProvider.base_url} · key {activeProvider.key_hint || "（未存）"} · provider 累计上限 ¥{activeProvider.budget_limit_cny}，同时受本轮总上限约束</p>}
         {models === null ? <p className="ai-hint">正在获取模型列表…</p> : <>
-          <label>模型（仅可选通过 VLM 探测并已填单价的）
-            <select value={modelSel} onChange={e => setModelSel(e.target.value)}>
-              <option value="">（默认：{activeProvider?.default_model ?? status?.model ?? "未配置"}）</option>
+          <label>待配置或运行的模型
+            <select aria-label="待配置或运行的模型" value={modelSel} onChange={e => setModelSel(e.target.value)}>
+              <option value="">{activePid === "default" ? `（本机默认：${activeProvider?.default_model ?? status?.model ?? "未配置"}）` : "请选择该 provider 的模型"}</option>
               {models.map(m => (
-                <option key={m.id} value={m.id} disabled={!(m.vlm === true && m.pricing)}>
+                <option key={m.id} value={m.id}>
                   {m.id}{m.vlm === true ? (m.pricing ? " ✓" : "（缺单价）") : m.vlm === false ? "（不支持图片/工具）" : "（未检测）"}
                 </option>
               ))}
             </select>
           </label>
           <div className="ai-settings-row">
-            <button type="button" disabled={!modelSel || settingsBusy} onClick={() => void probe(modelSel)}>检测 VLM</button>
-            <span className="ai-hint">检测发起一次极小的图片+工具请求（消耗少量 token），通过才可选。</span>
+            <button type="button" disabled={!modelSel || settingsBusy || (!hasPrice && !isDefaultModel)} onClick={() => void probe(modelSel)}>检测 VLM</button>
+            <span className="ai-hint">先填写单价再检测图片与工具能力；检测计入预算，通过后可运行。</span>
           </div>
-          {selectedModel?.vlm === true && !selectedModel?.pricing && modelSel && (
+          {modelSel && !hasPrice && !isDefaultModel && (
             <div className="ai-settings-row">
               <span>单价（元/百万 token）：输入
                 <input value={price.input} onChange={e => setPrice({ ...price, input: e.target.value })} size={6} inputMode="decimal" />
@@ -208,13 +221,22 @@ export function AIPanel() {
             <label>名称 <input value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })} placeholder="如 我的中转" /></label>
             <label>Base URL（必须 https） <input value={draft.base_url} onChange={e => setDraft({ ...draft, base_url: e.target.value })} placeholder="https://example.com/v1" /></label>
             <label>API Key（只写入本机 0600 文件，保存后不再回显） <input type="password" value={draft.api_key} onChange={e => setDraft({ ...draft, api_key: e.target.value })} /></label>
-            <label>独立预算上限（元） <input value={draft.limit} onChange={e => setDraft({ ...draft, limit: e.target.value })} size={6} inputMode="decimal" /></label>
+            <label>Provider 累计子上限（元） <input value={draft.limit} onChange={e => setDraft({ ...draft, limit: e.target.value })} size={6} inputMode="decimal" /></label>
             <button type="button" className="primary" disabled={settingsBusy || !draft.base_url.trim().startsWith("https://") || draft.api_key.trim().length < 8} onClick={() => void saveProvider()}>保存 provider</button>
           </div>
         </details>
       </div>
     </details>
     <p>用自然语言创建或修改模型；可附带图纸图片看图建模。</p>
+    {job?.framework === "agenticcadedit-acis" && ["applied", "completed", "failed", "cancelled"].includes(job.status) && (
+      <label>对话方式 <select aria-label="对话方式" value={continueConversation ? "continue" : "new"}
+        onChange={e => setContinueConversation(e.target.value === "continue")}>
+        <option value="continue">继续当前对话，保留之前要求</option>
+        <option value="new">新建独立对话</option>
+      </select></label>
+    )}
+    {status?.framework === "agenticcadedit-acis" && <label><input type="checkbox" checked={inspectOnly}
+      disabled={running || busy || paused || job?.status === "ready"} onChange={e => setInspectOnly(e.target.checked)} />只读检查（禁止修改几何）</label>}
     <label htmlFor="ai-instruction">编辑要求</label>
     <textarea id="ai-instruction" value={instruction} onChange={e => setInstruction(e.target.value)} rows={5}
       placeholder="例如：创建一个 60×40×8 的底板，在中央打一个半径 6 的通孔。" disabled={running || busy || paused || job?.status === "ready"} />
@@ -235,7 +257,7 @@ export function AIPanel() {
       )}
     </div>
     <div className="ai-actions">
-      <button className="primary" disabled={!project || !status?.enabled || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
+      <button className="primary" disabled={!project || !status?.enabled || !modelEligible || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
         onClick={() => void start()}>{running ? "AI 正在编辑…" : "生成预览"}</button>
       {running && <button disabled={busy || job.cancel_requested} onClick={() => void cancel()}>停止</button>}
     </div>
@@ -245,11 +267,12 @@ export function AIPanel() {
       <p>累计 {job.calls} 次模型调用 · 约 ¥{job.estimated_cny.toFixed(3)}。继续沿用原任务和累计费用，不会从头生成。</p>
       {stale && <p role="alert">项目版本已改变，请基于最新模型重新发起任务；旧预览不能直接继续。</p>}
       <form onSubmit={e => { e.preventDefault(); void resume(String(new FormData(e.currentTarget).get("instruction") ?? "")); }}>
-      <label htmlFor="ai-continuation">续作补充要求（可选）</label>
+      <label htmlFor="ai-continuation">{needsReply ? "回答或补充要求（必填）" : "续作补充要求（可选）"}</label>
       <textarea id="ai-continuation" name="instruction" value={continuation} onChange={e => setContinuation(e.target.value)} rows={3}
-        placeholder="例如：保留主体，接着完成把手和出水口。" disabled={busy || stale || job.can_resume === false} maxLength={6000} />
+        placeholder={needsReply ? "请回答模型的问题，或纠正其说明后继续。" : "例如：保留主体，接着完成把手和出水口。"}
+        required={needsReply} disabled={busy || stale || job.can_resume === false} maxLength={6000} />
       <div className="ai-actions">
-        <button type="submit" className="primary" disabled={busy || stale || job.can_resume === false || !status?.enabled}>继续生成</button>
+        <button type="submit" className="primary" disabled={busy || stale || job.can_resume === false || !status?.enabled || (needsReply && !continuation.trim())}>{needsReply ? "回答并继续" : "继续生成"}</button>
         <button type="button" disabled={busy} onClick={() => void cancel()}>放弃预览</button>
         {!preview && job.scene && <button type="button" onClick={() => useViewer.getState().setAIPreview(job.scene)}>查看中间模型</button>}
       </div>
@@ -269,7 +292,7 @@ export function AIPanel() {
     {job && <details className="ai-trace"><summary>查看过程 · {job.trace.length} 条记录 · 累计 {job.calls} 次模型调用 · 约 ¥{job.estimated_cny.toFixed(3)}</summary>
       <ol>{job.trace.map(step => <li key={step.step}><strong>{step.tool}</strong> {step.outcome === "error" ? "失败" : ""}<pre>{step.detail}</pre></li>)}</ol>
     </details>}
-    {status?.budget && <p className="ai-hint">本轮预算占用 ¥{status.budget.charged_or_reserved_cny.toFixed(2)} / ¥{status.budget.limit_cny.toFixed(0)}（含实验）</p>}
+    {status?.budget && <p className="ai-hint">本轮总预算占用 ¥{status.budget.charged_or_reserved_cny.toFixed(2)} / ¥{status.budget.limit_cny.toFixed(0)}（含实验、所有模型与检测）</p>}
     {error && <p role="alert" className="ai-error">{error}</p>}
   </section>;
 }

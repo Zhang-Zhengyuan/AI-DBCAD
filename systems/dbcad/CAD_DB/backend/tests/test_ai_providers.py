@@ -72,17 +72,17 @@ def test_decode_data_urls_bounds_count_size_and_format():
         store.decode_data_urls([huge])
 
 
-def _config():
+def _config(folder):
     pricing = {"model": "qwen-default", "input_cny_per_million": 3.0,
                "output_cny_per_million": 18.0, "context_tokens": 262144}
     return {"framework": "agenticcadedit-acis", "base_url": "https://env.example/v1",
             "api_key": "env-key", "pricing": pricing,
-            "budget": SimpleNamespace(path=Path("/tmp/research-ledger.json"))}
+            "budget": SimpleNamespace(path=folder / "research-ledger.json", limit=300.0)}
 
 
 def test_resolve_runtime_config_requires_vlm_probe_and_pricing(provider_file):
     from app.ai_editor import resolve_runtime_config
-    config = _config()
+    config = _config(provider_file.parent)
     assert resolve_runtime_config(config, None, None) is config
     assert resolve_runtime_config(config, store.DEFAULT_ID, "qwen-default") is config
     with pytest.raises(HTTPException) as no_probe:
@@ -99,9 +99,9 @@ def test_resolve_runtime_config_requires_vlm_probe_and_pricing(provider_file):
     runtime = resolve_runtime_config(config, record["id"], "good-vlm")
     assert runtime["base_url"] == "https://one.example/v1" and runtime["api_key"] == "sk-keykeykey"
     assert runtime["pricing"]["model"] == "good-vlm"
-    assert runtime["budget"].path.name == f"budget-custom-{record['id']}-good-vlm.json"
-    assert runtime["budget"].limit == 50.0
-    assert config["budget"] is runtime["budget"] or config["budget"].path != runtime["budget"].path
+    assert runtime["budget"].path == config["budget"].path
+    assert runtime["budget"].limit == 300.0
+    assert runtime["budget"].scope_limit == 50.0
 
 
 def test_probe_classifier_routes_provider_errors():

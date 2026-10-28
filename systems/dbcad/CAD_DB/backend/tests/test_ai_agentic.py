@@ -279,6 +279,43 @@ def test_pinned_official_loop_executes_native_mcp_and_returns_real_image_blocks(
 
 
 @pytest.mark.integration
+def test_official_loop_retains_public_clarification_and_accepts_next_human_turn(tmp_path):
+    upstream, python = os.environ.get("CAD_AGENT_UPSTREAM"), os.environ.get("CAD_AGENT_PYTHON")
+    if not upstream or not python:
+        pytest.skip("Set CAD_AGENT_UPSTREAM and CAD_AGENT_PYTHON for the fixed official environment")
+    fixture = Fixture()
+    question = "出水口直径需要多少毫米？"
+    async def model(messages, tools):
+        fixture.models.append((messages, tools))
+        if len(fixture.models) == 1:
+            message = {"role": "assistant", "content": question}
+        else:
+            assert any(m.get("content") == question for m in messages)
+            assert messages[-1]["content"] == "直径 12 mm"
+            message = {"role": "assistant", "content": None, "tool_calls": [{
+                "id": "clarification-finish", "type": "function", "function": {
+                    "name": "finish", "arguments": json.dumps({"summary": "已记录直径", "success": True})}}]}
+        return {"choices": [{"message": message}], "usage": {"prompt_tokens": 10, "completion_tokens": 10}}
+    fixture.callbacks.model = model
+    config = {"agentic_upstream": upstream, "render_python": python, "max_calls": 2}
+    async def check():
+        result = await run_agentic(fixture.job, config, fixture.callbacks)
+        assert result["exit_reason"] == "no_tool_call" and result["summary"] == question
+        fixture.job.messages.append({"role": "user", "content": "直径 12 mm"})
+        result = await run_agentic(fixture.job, config, fixture.callbacks)
+        assert result["finished"] and result["summary"] == "已记录直径"
+    asyncio.run(check())
+
+
+def test_explicit_overview_view_keeps_existing_render_arguments():
+    fixture = Fixture()
+    session = CadSession(fixture.job, fixture.callbacks)
+    result = asyncio.run(session.render(["front", "overview", "front"]))
+    assert result["ok"] and result["views"] == ["front", "overview", "front"]
+    assert len(result["images"]) == 3
+
+
+@pytest.mark.integration
 def test_official_loop_resumes_same_native_state_across_subprocess_segments(tmp_path):
     upstream, python = os.environ.get("CAD_AGENT_UPSTREAM"), os.environ.get("CAD_AGENT_PYTHON")
     if not upstream or not python:

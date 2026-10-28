@@ -2,6 +2,8 @@
 
 本目录属于 Issue #26 / `feat/26-cad-agent-acis`。实验定义和可复用代码拟入 Git；运行、原始 API 输出、几何与报告留 `runs/`，不自动提交。协议见 [PROTOCOL.md](PROTOCOL.md)。
 
+状态口径：工程选型已完成并记录于 DECISION；experiment.json 的 planned 指原计划的候选能力对照与 neural192，二者未运行，不表示工程接入未完成。以下“下次恢复”列表仅属于该候选对照草案；当前连续编辑主线移至 [EXP-004](../exp-004-native-continuation/README.md)。DECISION 中费用为当时验收快照，当前累计应读取授权账本，不能沿用旧快照推算剩余额度。
+
 ## 当前阶段（2026-10-27）
 
 - 原始 AgenticCADedit／IterCAD 固定版本及真实协议已审计。

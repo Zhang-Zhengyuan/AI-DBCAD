@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shutil
 import subprocess
 import tempfile
 from collections import OrderedDict
@@ -90,6 +91,9 @@ class _Process:
                 self.proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 pass
+        for stream in (self.proc.stdin, self.proc.stdout):
+            if stream is not None:
+                stream.close()
         self.proc = None
 
     async def stop(self) -> None:
@@ -103,6 +107,10 @@ class _Session:
         self.component_sats: list[str] = []  # hash_sat 序列，与版本清单一致
         self.spool = Path(tempfile.mkdtemp(prefix=f"dbcad_session_{project_id[:8]}_"))
         self.process = _Process(Path(settings.worker_exe))
+
+    async def close(self):
+        await self.process.stop()
+        shutil.rmtree(self.spool, ignore_errors=True)
 
     async def sync(self, version: int, components: list[SceneComponent]) -> None:
         sats = [c.hash_sat for c in components]
@@ -142,7 +150,7 @@ class GeometryPool:
     async def _evict_locked(self) -> None:
         while len(self._sessions) > self.max_sessions:
             _, victim = self._sessions.popitem(last=False)
-            await victim.process.stop()
+            await victim.close()
 
     async def execute(
         self,
@@ -164,7 +172,7 @@ class GeometryPool:
             except WorkerError:
                 # 命令失败或会话损坏：直接重建，下条命令按 head 重开。
                 self._sessions.pop(project_id, None)
-                await session.process.stop()
+                await session.close()
                 raise
             await self._evict_locked()
             result = response.get("result", {})
@@ -173,12 +181,10 @@ class GeometryPool:
 
     async def release(self, project_id: str) -> None:
         """Release an isolated preview session without touching other projects."""
-        import shutil
         async with self._lock(project_id):
             session = self._sessions.pop(project_id, None)
             if session is not None:
-                await session.process.stop()
-                shutil.rmtree(session.spool, ignore_errors=True)
+                await session.close()
         self._locks.pop(project_id, None)
 
     async def query(
@@ -204,7 +210,7 @@ class GeometryPool:
                 response = await session.process.request("query", query=query)
             except WorkerError:
                 self._sessions.pop(project_id, None)
-                await session.process.stop()
+                await session.close()
                 raise
             await self._evict_locked()
             return response.get("result", {})
@@ -242,9 +248,8 @@ class GeometryPool:
                 )
 
     async def shutdown(self) -> None:
-        for session in list(self._sessions.values()):
-            await session.process.stop()
-        self._sessions.clear()
+        for project_id in list(self._sessions):
+            await self.release(project_id)
 
 
 _pool: GeometryPool | None = None

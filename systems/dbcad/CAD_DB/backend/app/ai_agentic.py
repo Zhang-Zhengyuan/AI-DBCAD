@@ -88,6 +88,9 @@ local to a component and can change after edits; query again. render_views uses
 list_faces/list_edges centers for red highlights of the actual selected entity.
 Use both rendered views and exact measurements to verify an edit. Do not use an
 unchanged component hash as evidence that surrounding space is still clear.
+Ordinary render views keep the initial world camera so movement stays visible.
+Use render_views(views=['overview']) to fit the whole current scene after adding
+or moving distant parts; overview does not change the other views' camera.
 Example rhythm, NOT a task answer:
   run_step("plate = cad.box(40,30,8); cutter = cad.cylinder(3,12)")
   run_step("plate = cad.subtract(plate,cutter); print(cad.validate(plate))")
@@ -174,6 +177,8 @@ class AgenticBridge:
                     raise ValueError("Unknown render argument")
                 result = await self.session.render(**args)
             elif name in {"undo", "reset"}:
+                if getattr(self.job, "mode", "edit") == "inspect":
+                    raise ValueError("Read-only stage forbids undo/reset geometry writes")
                 if args:
                     raise ValueError(f"{name} accepts no arguments")
                 result = await getattr(self.session, name)()

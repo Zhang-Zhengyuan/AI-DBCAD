@@ -1,9 +1,9 @@
 """User-defined AI providers: endpoint, key, per-model VLM eligibility and pricing.
 
 Keys live only in a 0600 local JSON file next to the private AI config. They are
-never returned to the browser (masked view only) and never logged. VLM probing
-sends one minimal image+tool request; its tiny usage is recorded and disclosed
-instead of silently charging the research ledger.
+never returned to the browser (masked view only) and never logged. Visual/tool
+challenges and editing requests share the authorization ledger; provider usage
+has an additional cumulative sublimit across its models.
 """
 
 from __future__ import annotations
@@ -13,7 +13,11 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
+import struct
 import time
+import tempfile
+import zlib
 from uuid import uuid4
 
 from .config import settings
@@ -42,13 +46,16 @@ def _load(path: Path) -> dict:
 
 def _save(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    with temporary.open("w", encoding="utf-8") as stream:
-        json.dump(data, stream, ensure_ascii=False, indent=1)
-        stream.flush()
-        os.fsync(stream.fileno())
-    os.replace(temporary, path)
-    path.chmod(0o600)
+    descriptor, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(descriptor,"w",encoding="utf-8") as stream:
+            json.dump(data, stream, ensure_ascii=False, indent=1)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def list_providers() -> list[dict]:
@@ -86,6 +93,9 @@ def upsert_provider(payload: dict) -> dict:
             # The default record stores per-model metadata only; its key stays in env.
             base_url = record["base_url"]
             api_key = ""
+        if record["base_url"] != base_url:
+            # Capability observations belong to an endpoint, not its UI label.
+            record["models"] = {}
         record["base_url"] = base_url
     if api_key:
         if provider_id == DEFAULT_ID:
@@ -175,6 +185,20 @@ def ledger_path(provider_id: str, model: str) -> Path | None:
         return None
     slug = _SLUG.sub("-", model)[:60] or "model"
     return root.parent / f"budget-custom-{provider_id}-{slug}.json"
+
+
+def visual_challenge():
+    """Random solid-colour PNG; the answer is absent from the text request."""
+    name, rgb = secrets.choice([("red", (255, 0, 0)), ("green", (0, 255, 0)),
+                                ("blue", (0, 0, 255)), ("yellow", (255, 255, 0))])
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    pixels = b"".join(b"\0" + bytes(rgb) * 64 for _ in range(64))
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 64, 8, 2, 0, 0, 0))
+    png += chunk(b"IDAT", zlib.compress(pixels)) + chunk(b"IEND", b"")
+    return name, "data:image/png;base64," + base64.b64encode(png).decode()
 
 
 def decode_data_urls(images: list) -> list[str]:

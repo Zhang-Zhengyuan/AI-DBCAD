@@ -165,3 +165,75 @@ class Budget:
                 "limit_cny": d["limit_cny"],
             }
         )
+
+
+class SharedBudget(Budget):
+    """One authorization ledger, with immutable prices and provider sublimits.
+
+    Existing single-model entries remain charged in place. No migration resets
+    calls or reservations; untagged legacy entries belong to the default scope.
+    All admission and settlement still use the same cross-process file lock.
+    """
+
+    def __init__(self, path, limit, pricing, *, scope="default", scope_limit=None):
+        super().__init__(path, limit, pricing)
+        self.scope = str(scope)
+        self.scope_limit = None if scope_limit is None else float(scope_limit)
+        if self.scope_limit is not None and (not math.isfinite(self.scope_limit) or self.scope_limit <= 0):
+            raise ValueError("Provider budget must be finite and positive")
+
+    def update(self, action):
+        with self.path.with_suffix(".lock").open("a+") as file, _locked(file):
+            data = json.loads(self.path.read_text()) if self.path.exists() else {}
+            if not data:
+                data = {"limit_cny": self.limit, "pricing": self.pricing, "calls": []}
+            if data["limit_cny"] != self.limit:
+                raise ValueError("Authorization limit changed; reconcile the existing ledger explicitly")
+            # Keep the original pricing record for legacy calls and consumers.
+            catalog = data.setdefault("pricing_catalog", {})
+            if not catalog and data.get("calls"):
+                catalog["default/" + data["pricing"]["model"]] = data["pricing"]
+            key = self.scope + "/" + self.pricing["model"]
+            if key in catalog and catalog[key] != self.pricing:
+                raise ValueError("Model pricing changed; reconcile existing terms explicitly")
+            catalog[key] = self.pricing
+            value = action(data)
+            temporary = self.path.with_suffix(".tmp")
+            with temporary.open("w") as output:
+                json.dump(data, output, ensure_ascii=False, indent=2)
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, self.path)
+            return value
+
+    def reserve(self, model, max_output, label):
+        p = self.pricing
+        if model != p["model"] or not 1 <= max_output <= p["context_tokens"]:
+            raise ValueError("Model/output is not covered by the verified pricing")
+        cost = (p["context_tokens"] * p["input_cny_per_million"] +
+                max_output * p["output_cny_per_million"]) / 1e6
+
+        def reserve(data):
+            used = sum(c["charged_or_reserved_cny"] for c in data["calls"])
+            scoped = sum(c["charged_or_reserved_cny"] for c in data["calls"]
+                         if c.get("scope", "default") == self.scope)
+            if used + cost > self.limit:
+                raise BudgetExceeded(f"Next call reserves CNY {cost:.4f}; only {self.limit-used:.4f} remains globally")
+            if self.scope_limit is not None and scoped + cost > self.scope_limit:
+                raise BudgetExceeded("Provider cumulative budget is exhausted across its models")
+            index = len(data["calls"])
+            data["calls"].append({"label": label, "started": time.time(), "status": "reserved",
+                                  "scope": self.scope, "model": model,
+                                  "pricing_key": self.scope + "/" + model,
+                                  "reservation_cny": cost, "charged_or_reserved_cny": cost})
+            return index
+
+        return self.update(reserve)
+
+    def summary(self):
+        result = super().summary()
+        result.update(scope=self.scope, scope_limit_cny=self.scope_limit)
+        result["scope_charged_or_reserved_cny"] = self.update(lambda d: sum(
+            c["charged_or_reserved_cny"] for c in d["calls"]
+            if c.get("scope", "default") == self.scope))
+        return result

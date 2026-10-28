@@ -3,6 +3,7 @@
   "id": "EXP-003",
   "title": "完整 AI-CAD agent 选型与 ACIS 接入能力验收",
   "status": "planned",
+  "scope_status": {"engineering_selection": "completed", "original_candidate_comparison": "not_run"},
   "code_paths": [
     "experiments/exp-003-cad-agent-selection/experiment.py",
     "experiments/exp-003-cad-agent-selection/upstreams.py",
@@ -20,13 +21,13 @@
   "local_run_roots": ["experiments/exp-003-cad-agent-selection/runs"],
   "result_paths": [],
   "limitations": [
-    "Implementation prepared; paid protocol and runtime configuration have not been frozen",
-    "Zero paid inference calls in EXP-003 so far; no framework winner established",
+    "Engineering selection and small native integration checks are recorded in DECISION.md; this definition's original candidate comparison remains planned",
+    "Benchmark-side paid calls are zero; no empirical ranking from the planned candidate comparison is established",
     "24 reference stages verified offline; these are oracle checks, not model-generated results",
     "Original IterCAD model weights not downloaded or served; existing Transformers does not support its architecture",
     "Original-framework adapters and budgeted transport integration require zero-cost integration tests before inference",
     "Sequential requests inherit actual geometry but use original per-request loops; this is not a natural long-horizon dialogue benchmark",
     "neural192 currently reports strict solid availability only, not semantic acceptance or the paper's full evaluation suite",
-    "ACIS-native parity acceptance is a separate implementation task; no OCP execution is claimed as ACIS editing"
+    "Native ACIS integration has small-scope validation; full capability-suite parity has not been run. EXP-004 studies native continuation separately"
   ]
 }
