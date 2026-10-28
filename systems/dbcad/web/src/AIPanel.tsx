@@ -169,7 +169,7 @@ export function AIPanel() {
         label: draft.label.trim() || "自定义接口",
         base_url: draft.base_url.trim().replace(/\/+$/, ""),
         api_key: draft.api_key.trim(),
-        budget_limit_cny: Number(draft.limit) || 100,
+        ...(status?.budget?.enforced === false ? {} : { budget_limit_cny: Number(draft.limit) || 100 }),
       });
       setProviders((await api.aiProviders()).providers);
       setActivePid(saved.id); setModelSel("");
@@ -256,7 +256,7 @@ export function AIPanel() {
           </select>
         </label>
         {activeProvider && activeProvider.id !== "default" &&
-          <p className="ai-hint">{activeProvider.base_url} · key {activeProvider.key_hint || "（未存）"} · provider 累计上限 ¥{activeProvider.budget_limit_cny}，同时受本轮总上限约束</p>}
+          <p className="ai-hint">{activeProvider.base_url} · key {activeProvider.key_hint || "（未存）"} · {status?.budget?.enforced === false ? "不设金额上限，费用持续记录" : `provider 累计上限 ¥${activeProvider.budget_limit_cny}，同时受本轮总上限约束`}</p>}
         {models === null ? <p className="ai-hint">正在获取模型列表…</p> : <>
           <label>待配置或运行的模型
             <select aria-label="待配置或运行的模型" value={modelSel} onChange={e => setModelSel(e.target.value)}>
@@ -270,7 +270,7 @@ export function AIPanel() {
           </label>
           <div className="ai-settings-row">
             <button type="button" disabled={!modelSel || settingsBusy || (!hasPrice && !isDefaultModel)} onClick={() => void probe(modelSel)}>检测 VLM</button>
-            <span className="ai-hint">先填写单价再检测图片与工具能力；检测计入预算，通过后可运行。</span>
+            <span className="ai-hint">先填写单价再检测图片与工具能力；检测费用计入账本，通过后可运行。</span>
           </div>
           {modelSel && !hasPrice && !isDefaultModel && (
             <div className="ai-settings-row">
@@ -289,7 +289,7 @@ export function AIPanel() {
             <label>名称 <input value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })} placeholder="如 我的中转" /></label>
             <label>Base URL（必须 https） <input value={draft.base_url} onChange={e => setDraft({ ...draft, base_url: e.target.value })} placeholder="https://example.com/v1" /></label>
             <label>API Key（只写入本机 0600 文件，保存后不再回显） <input type="password" value={draft.api_key} onChange={e => setDraft({ ...draft, api_key: e.target.value })} /></label>
-            <label>Provider 累计子上限（元） <input value={draft.limit} onChange={e => setDraft({ ...draft, limit: e.target.value })} size={6} inputMode="decimal" /></label>
+            {status?.budget?.enforced !== false && <label>Provider 累计子上限（元） <input value={draft.limit} onChange={e => setDraft({ ...draft, limit: e.target.value })} size={6} inputMode="decimal" /></label>}
             <button type="button" className="primary" disabled={settingsBusy || !draft.base_url.trim().startsWith("https://") || draft.api_key.trim().length < 8} onClick={() => void saveProvider()}>保存 provider</button>
           </div>
         </details>
@@ -368,7 +368,9 @@ export function AIPanel() {
     {job && <details className="ai-trace"><summary>查看过程 · {job.trace.length} 条记录 · 累计 {job.calls} 次模型调用 · 约 ¥{job.estimated_cny.toFixed(3)}</summary>
       <ol>{job.trace.map(step => <li key={step.step}><strong>{step.tool}</strong> {step.outcome === "error" ? "失败" : ""}<pre>{step.detail}</pre></li>)}</ol>
     </details>}
-    {status?.budget && <p className="ai-hint">本轮总预算占用 ¥{status.budget.charged_or_reserved_cny.toFixed(2)} / ¥{status.budget.limit_cny.toFixed(0)}（含实验、所有模型与检测）</p>}
+    {status?.budget && <p className="ai-hint">{status.budget.enforced === false
+      ? `累计费用及未知费用预留 ¥${status.budget.charged_or_reserved_cny.toFixed(2)} · 不设金额上限`
+      : `本轮总预算占用 ¥${status.budget.charged_or_reserved_cny.toFixed(2)} / ¥${status.budget.limit_cny?.toFixed(0) ?? "—"}（含实验、所有模型与检测）`}</p>}
     {error && <p role="alert" className="ai-error">{error}</p>}
   </section>;
 }

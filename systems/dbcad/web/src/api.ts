@@ -100,7 +100,7 @@ export const userName =
 export interface AIStatus {
   enabled: boolean; model: string | null;
   framework?: string; framework_label?: string;
-  budget: { charged_or_reserved_cny: number; limit_cny: number } | null;
+  budget: { charged_or_reserved_cny: number; limit_cny: number | null; enforced?: boolean } | null;
 }
 export interface ProviderModelEntry {
   vlm?: boolean | null; probe_error?: string | null; probed_at?: number;

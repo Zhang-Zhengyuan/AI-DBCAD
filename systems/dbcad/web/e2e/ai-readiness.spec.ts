@@ -8,6 +8,27 @@ const status = (model = "configured-default", enabled = true) => ({ enabled, mod
 const providers = [{ id: "default", label: "本机默认", default_model: "configured-default" },
   { id: "other", label: "另一个接口", default_model: null }];
 
+test("不限额模式累计费用超过100元仍可提交且不显示子额度输入", async ({ page }) => {
+  const p = await project(page);
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("**/api/v1/ai/status**", route => route.fulfill({ json: {
+    ...status(), budget: { charged_or_reserved_cny: 125.5, limit_cny: null, enforced: false },
+  } }));
+  await page.route("**/api/v1/ai/providers**", route => route.fulfill({ json:
+    route.request().url().endsWith("/models") ? { models: [readyModel()] } : { providers } }));
+  await seed(page);
+  await page.goto("/web/");
+  await page.getByRole("listitem").filter({ hasText: p.name }).click();
+  await page.getByLabel("编辑要求", { exact: true }).fill("创建一个立方体");
+  await expect(page.getByText("累计费用及未知费用预留 ¥125.50 · 不设金额上限")).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成预览", exact: true })).toBeEnabled();
+  await page.locator(".ai-settings > summary").click();
+  await page.getByText("新增自定义 provider（base_url + API key）", { exact: true }).click();
+  await expect(page.getByLabel("Provider 累计子上限（元）")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 async function project(page: Page) {
   return (await page.request.post("/api/v1/projects", { headers: { "X-API-Password": "dbcad-e2e-access" },
     data: { name: `readiness-${Date.now()}` } })).json();
