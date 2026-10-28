@@ -2,10 +2,31 @@
   "schema_version": 1,
   "id": "EXP-004",
   "title": "官方 AgenticCADedit 与原生 ACIS 的连续编辑及跨版本证据可靠性",
-  "status": "planned",
-  "code_paths": ["experiments/exp-004-native-continuation/pilot.py", "experiments/exp-004-native-continuation/scenes.py", "experiments/exp-004-native-continuation/test_protocol.py"],
-  "data_references": ["Synthetic pin/slider tasks related to EXP-002, rebuilt using actual ACIS commands", "Official AgenticCADedit c084034cdcf462025a60ee70c5ba94577428e5ca"],
-  "local_run_roots": ["experiments/exp-004-native-continuation/runs"],
-  "result_paths": [],
-  "limitations": ["Planned until frozen and executed; no desired failure is assumed", "Controlled long-prefix paired branches, not industrial prevalence", "ACIS native language adaptation, not full CadQuery or trained IterCAD reproduction"]
+  "status": "completed",
+  "code_paths": [
+    "experiments/exp-004-native-continuation/pilot.py",
+    "experiments/exp-004-native-continuation/scenes.py",
+    "experiments/exp-004-native-continuation/test_protocol.py",
+    "experiments/exp-004-native-continuation/analysis/audit.py",
+    "experiments/exp-004-native-continuation/analysis/test_audit.py"
+  ],
+  "data_references": [
+    "Synthetic pin/slider tasks related to EXP-002, rebuilt using actual ACIS commands",
+    "Official AgenticCADedit c084034cdcf462025a60ee70c5ba94577428e5ca"
+  ],
+  "local_run_roots": [
+    "experiments/exp-004-native-continuation/runs"
+  ],
+  "result_paths": [
+    "experiments/exp-004-native-continuation/results/20261028/RESULTS.md",
+    "experiments/exp-004-native-continuation/results/20261028/summary.json",
+    "experiments/exp-004-native-continuation/results/20261028/trials.csv",
+    "experiments/exp-004-native-continuation/results/20261028/manifest.json"
+  ],
+  "limitations": [
+    "Primary 30/30 complete, secondary 18/30 complete, 11 budget-censored and one no-tool terminal output; all allocated denominators retained",
+    "No confirmed expired-memory misuse; temporary private preview violations and unsupported public execution claim are distinct diagnostics",
+    "Controlled shared ten-stage prefixes; no short-chain length control or industrial prevalence estimate",
+    "ACIS native language adaptation, not full CadQuery or trained IterCAD reproduction; no Neo4j production persistence validation"
+  ]
 }

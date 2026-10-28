@@ -139,7 +139,7 @@ class Job:
             "segment_calls": self.segment_calls,
             "segment_limit": self.segment_limit,
             "pause_reason": self.pause_reason,
-            "can_resume": self.status == "paused" and self.pause_reason in {"round_limit", "budget_limit"} and not self.cancelled,
+            "can_resume": self.status == "paused" and self.pause_reason in {"round_limit", "budget_limit", "no_tool_call"} and not self.cancelled,
             "cancel_requested": self.cancelled,
             "estimated_cny": self.cost,
             "version": self.version,
@@ -306,8 +306,10 @@ async def resume(job, instruction=""):
     # A paused status may become visible while finally is still releasing its worker.
     if job.status == "paused" and job.task and not job.task.done():
         await asyncio.shield(job.task)
-    if job.status != "paused" or job.pause_reason not in {"round_limit", "budget_limit"} or job.cancelled:
+    if job.status != "paused" or job.pause_reason not in {"round_limit", "budget_limit", "no_tool_call"} or job.cancelled:
         raise HTTPException(409, "此任务不能继续；只有已暂停的未完成预览可以续作")
+    if job.pause_reason == "no_tool_call" and not instruction.strip():
+        raise HTTPException(422, "模型停止调用工具；请先回答其问题或补充要求，再继续同一任务")
     head, _ = _head(job.project)
     if head != job.base:
         raise HTTPException(409, {"reason": "stale_base_version", "current_head": head})

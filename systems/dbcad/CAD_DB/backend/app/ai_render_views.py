@@ -10,11 +10,13 @@ selection geometry from the worker, drawn in red on top of the mesh.
 """
 
 import json
+import math
 import sys
 
 import vtk
 
 VIEW_FRAMES = {
+    "overview": ((1, -1, 1), (0, 0, 1)),
     "toprightiso": ((1, -1, 1), (0, 0, 1)),
     "isometric": ((1, 1, 1), (0, 0, 1)),
     "front": ((0, -1, 0), (0, 0, 1)),
@@ -109,6 +111,12 @@ def main():
 
     for index, view in enumerate(views):
         direction, up = VIEW_FRAMES[view]
+        # A bounding sphere fits every direction; leave ordinary world views
+        # anchored, including views requested after overview in the same call.
+        view_center, view_size = center, size
+        if view == "overview":
+            view_center = default_center
+            view_size = 1.1 * (math.sqrt(sum((bounds[2*i+1] - bounds[2*i])**2 for i in range(3))) or 1)
         window = vtk.vtkRenderWindow()
         window.SetOffScreenRendering(1)
         window.SetSize(1000, 760)
@@ -124,11 +132,11 @@ def main():
             renderer.AddActor(actor)
         window.AddRenderer(renderer)
         camera = renderer.GetActiveCamera()
-        camera.SetFocalPoint(*center)
-        camera.SetPosition(*[center[i] + direction[i] * size * 3 for i in range(3)])
+        camera.SetFocalPoint(*view_center)
+        camera.SetPosition(*[view_center[i] + direction[i] * view_size * 3 for i in range(3)])
         camera.SetViewUp(*up)
         camera.ParallelProjectionOn()
-        camera.SetParallelScale(size / 2)
+        camera.SetParallelScale(view_size / 2)
         renderer.ResetCameraClippingRange()
         window.Render()
         capture = vtk.vtkWindowToImageFilter()

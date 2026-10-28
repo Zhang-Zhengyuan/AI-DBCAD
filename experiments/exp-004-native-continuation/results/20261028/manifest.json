@@ -1,0 +1,36 @@
+{
+  "experiment_id": "EXP-004",
+  "created_date": "2026-10-28",
+  "source_runs": [
+    "20261028-native-v1-s20261028",
+    "20261028-native-v1b-max-s20261028"
+  ],
+  "analysis_version": 1,
+  "generation": "analysis/audit.py with explicit model=run mappings, original shared ledger, and adjudications.json; public-summaries.md remains local",
+  "files": [
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/RESULTS.md",
+      "sha256": "37e9831f9d456f3644cba43caacc69aebf0d3f9bde169693e3e58c10a92eb38e"
+    },
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/adjudications.json",
+      "sha256": "b388e6a238eb26803258f18e3476374cbd2b407b0e1193cecd2e18dd833f9c95"
+    },
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/provenance.json",
+      "sha256": "9deb8aa20fef0a0ff4235fc8faae4e761066e2610ed42ce97acad8b93e3421c7"
+    },
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/summary.json",
+      "sha256": "c81e97072a1c715d0b276305e3e5a2966c0e247cb92d35a448f53961c92bafd9"
+    },
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/trials.csv",
+      "sha256": "7e6f4d80c9728f799970e1ca30fb873663473354e1aa90a2dfc643ceb7b6e248"
+    },
+    {
+      "path": "experiments/exp-004-native-continuation/results/20261028/unsafe-evidence.json",
+      "sha256": "3408ac06da434257ebb60dfc5145db6bbf83368a318ab25ef540e297fe178f54"
+    }
+  ]
+}

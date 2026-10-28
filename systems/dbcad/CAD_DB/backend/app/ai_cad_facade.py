@@ -193,7 +193,7 @@ class CadSession:
         return {"ok": True, "info": await self.inspect()}
 
     async def render(self, views=None, highlight_faces=None, highlight_edges=None):
-        allowed = {"toprightiso", "isometric", "front", "back", "left", "right", "top", "bottom"}
+        allowed = {"toprightiso", "isometric", "front", "back", "left", "right", "top", "bottom", "overview"}
         views = [views] if isinstance(views, str) else views or ["toprightiso"]
         if not isinstance(views, list) or not 1 <= len(views) <= 7 or set(views) - allowed:
             raise ValueError("Unknown or excessive render views")

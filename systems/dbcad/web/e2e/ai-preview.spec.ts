@@ -1,5 +1,36 @@
 import { test, expect } from "@playwright/test";
 
+test("模型澄清问题可显示，人工填写回答后沿用同一任务", async ({ page }) => {
+  const headers = {"X-API-Password":"dbcad-e2e-access"};
+  const project = await (await page.request.post('/api/v1/projects', {headers,data:{name:`ai-question-${Date.now()}`}})).json();
+  const scene = await (await page.request.post(`/api/v1/projects/${project.id}/commands`,{headers,
+    data:{action:'component.create',params:{kind:'cube',width:8,height:8,depth:8}}})).json();
+  const id = 'c'.repeat(32);
+  let resumed = false;
+  await page.route('**/api/v1/ai/status**', route => route.fulfill({json:{enabled:true,model:'default-model',framework:'agenticcadedit-acis',budget:null}}));
+  await page.route('**/api/v1/ai/providers**', route => route.fulfill({json:{providers:[],models:[]}}));
+  await page.route(`**/api/v1/projects/${project.id}/ai/jobs**`, async route => {
+    if (route.request().method()==='POST') {
+      expect(route.request().url()).toContain('/resume');
+      expect(route.request().postDataJSON()).toEqual({instruction:'直径 12 mm'});
+      resumed = true;
+    }
+    await route.fulfill({json:{id,project_id:project.id,base_version:1,status:resumed?'completed':'paused',
+      pause_reason:resumed?null:'no_tool_call',can_resume:!resumed,framework:'agenticcadedit-acis',
+      summary:resumed?'已记录尺寸':'出水口直径需要多少毫米？',calls:1,estimated_cny:.01,trace:[],
+      scene:{project_id:project.id,version:1,components:scene.components}}});
+  });
+  await page.addInitScript(({pid,id}) => {sessionStorage.setItem('dbcad.password','dbcad-e2e-access');sessionStorage.setItem(`inferracad.ai.${pid}`,id);}, {pid:project.id,id});
+  await page.goto('/web/');
+  await page.getByRole('listitem').filter({hasText:project.name}).click();
+  await expect(page.getByText('出水口直径需要多少毫米？')).toBeVisible();
+  await expect(page.getByRole('button',{name:'回答并继续',exact:true})).toBeDisabled();
+  await page.getByLabel('回答或补充要求（必填）').fill('直径 12 mm');
+  await page.getByRole('button',{name:'回答并继续',exact:true}).click();
+  await expect.poll(() => resumed).toBe(true);
+  expect((await (await page.request.get(`/api/v1/projects/${project.id}`,{headers})).json()).head_version).toBe(1);
+});
+
 test("新模型能先填价检测，再启用运行", async ({ page }) => {
   const headers = {"X-API-Password":"dbcad-e2e-access"};
   const project = await (await page.request.post('/api/v1/projects', {headers,data:{name:`ai-provider-${Date.now()}`}})).json();

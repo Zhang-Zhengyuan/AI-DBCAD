@@ -105,7 +105,11 @@ def main(spec_path):
                     self.success = arguments.get("success", True) is True
             if not calls:
                 self.exit_reason = "no_tool_call"
-                self.summary = "模型停止调用工具，尚未确认完成；预览和对话已保留"
+                content = message.get("content")
+                if isinstance(content, list):
+                    content = "\n".join(item.get("text", "") for item in content if isinstance(item, dict))
+                self.summary = (str(content or "").strip() or
+                                "模型停止调用工具，尚未确认完成；预览和对话已保留")[:4000]
             return AssistantTurn(messages=[message], tool_calls=calls, usage=flat_usage(response.get("usage")))
 
     model = NativeVLM()

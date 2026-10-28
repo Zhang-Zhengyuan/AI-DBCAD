@@ -5,7 +5,7 @@
 - [EXP-001 · 三 harness 初步对照](exp-001-three-harness/README.md)：已有 24 请求 × 3 方法运行及后验审计；登记既有成果，不代表新运行。它没有测持续人机编辑的证据失效。
 - [EXP-002 · 跨版本证据失效预实验](exp-002-evidence-validity/README.md)：已完成 24 个受控恢复分支，观察到明确旧数值误用案例；N/F/A 最终验收 5/8、8/8、8/8。不是自然长期链或候选方法验证。
 - [EXP-003 · 框架选型与 ACIS 接入](exp-003-cad-agent-selection/README.md)：工程选型已记录；原计划候选对照与 192 请求仍未运行，不等同于经验排名。
-- [EXP-004 · 官方循环与原生 ACIS 连续编辑](exp-004-native-continuation/README.md)：十个真实需求阶段的连续前缀，五种人工变化/需求条件与 N/F/A 成对续作，正式结论以冻结运行记录为准。
+- [EXP-004 · 官方循环与原生 ACIS 连续编辑](exp-004-native-continuation/README.md)：首轮主模型 30/30、副模型 18/30 完整分支；完整分支最终几何均正确，9 例修复前预览违规，未确认旧记忆误用。预算截断和无工具结束保留分母，详见精选结果。
 
 ```bash
 python3 scripts/experiments.py list

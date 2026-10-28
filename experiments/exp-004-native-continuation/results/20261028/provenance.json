@@ -1,0 +1,60 @@
+[
+  {
+    "model": "qwen36-27b",
+    "run_id": "20261028-native-v1-s20261028",
+    "git_commit": "9ba87afb928f3dfdf748b04664037e1bf8dd6961",
+    "upstream_revision": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+    "worker_sha256": "3cf223ec52161f0929a23982cd7f2bd8333151f32d24df9d29fa9f0a7b27e58f",
+    "run_sha256": "1be009e2f34365cd2a2c88e549217e796f8f916a758de5c845516ec48a4f7a8e",
+    "freeze_sha256": "85d6eb24dcea4b1b5bcec5cb48dafd5016a6ac3c42dd14c835036e9a1814c4bc",
+    "source_hashes": {
+      "experiments/exp-004-native-continuation/pilot.py": "80f974e8f54e3ee6743d750bd54d35c17c776f01b324016b326b543b01cb2eda",
+      "experiments/exp-004-native-continuation/test_protocol.py": "cc8dd5971314259520d605e5b05bdaf72c1ebff1072d257bd4d02925951dc771",
+      "experiments/exp-004-native-continuation/scenes.py": "a61197431e06dc914b1d652e98c254a67bbe0a74f1c433dbba6cefd9af9cb2f9",
+      "experiments/exp-004-native-continuation/PROTOCOL.md": "7d9dfc7d98341ee39214c6d095650d0fdf394ae5b096ca8636cd8c071ac9631c",
+      "systems/dbcad/CAD_DB/backend/app/ai_editor.py": "8591273fff9522d96a654212137dd6c7d55059a8087c97ffdde09b38b7dbb5d4",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic.py": "6bf1fa48c8b4e379c47599517795c905f26cb922956cdf1e7e16d999648340ea",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic_runner.py": "40c6f2e459233c6378542637afc75d9a52e82356172a1403b02f9db522d112ab",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic_mcp.py": "fe38a8241854157fb6c08a10429a847824b5b2535a4e1d3a229a7e79fdb8aa5f",
+      "systems/dbcad/CAD_DB/backend/app/ai_cad_facade.py": "aac9a2df62d08f8227e5ce8274833a609b3c63b53c67958facc04447343807bc",
+      "systems/dbcad/CAD_DB/backend/app/ai_messages.py": "a6c4e71bd83666be01cc6113d53114ef80147e8c1eb18671bce7db096e99d470",
+      "systems/dbcad/CAD_DB/backend/app/cad_contract.py": "c7382e86ad99c50a4c5de2b3996d3e1a44631f3558f4b699c74f70674eae6bb6",
+      "systems/dbcad/CAD_DB/backend/app/ai_budget.py": "de6928abc315f061c8d78e8a615f50e38a7fa5f2eca203f9259eb254156f2af1",
+      "systems/dbcad/CAD_DB/backend/app/ai_render_views.py": "535e02c0f73cb45889c50f2fbd9b0713514296008d4f493ffc6965037fccb244",
+      "systems/dbcad/CAD_DB/backend/app/worker_pool.py": "cd73b9d2916202a3d3c3e89b14ba489645ed2ffa36f93670d8b0052cc13eb1c4",
+      "systems/dbcad/CAD_DB/backend/app/worker_client.py": "85f2506a31aa151c6a2048ce04614cb7deeab874d552f857ca227842cb9d9f9c",
+      "systems/dbcad/CAD_DB/backend/uv.lock": "112f6ca1c630321d4bbe52d983aa2ffd826b3415d4aa081e30e9f15d30b0144b"
+    },
+    "evidence_json_files": 1443,
+    "evidence_index_sha256": "e4239c593ac1a3caac1b214f52f79e9eb58385b4c95cb6eb8cf5206e778f6d84"
+  },
+  {
+    "model": "qwen38-max",
+    "run_id": "20261028-native-v1b-max-s20261028",
+    "git_commit": "1bffb1560edee6fe27e161833e74932c2cc310b9",
+    "upstream_revision": "c084034cdcf462025a60ee70c5ba94577428e5ca",
+    "worker_sha256": "3cf223ec52161f0929a23982cd7f2bd8333151f32d24df9d29fa9f0a7b27e58f",
+    "run_sha256": "123168cb2d4e8d5173ec7f386dbacff5374f12bc8408af48c10412ab9e90faad",
+    "freeze_sha256": "184777bde50a3e3c3488d4819c081265eb3d29f48f8f79ea3218c60ff5273d59",
+    "source_hashes": {
+      "experiments/exp-004-native-continuation/pilot.py": "df0e4bc6cc0c48e7fc1240626fbaf9f044f3bc2d4273271fe214d99e624a9a91",
+      "experiments/exp-004-native-continuation/test_protocol.py": "3f79d46f0d193706f942e4a84fead7abbd2bc2305738d1f342f34a10da8768c5",
+      "experiments/exp-004-native-continuation/scenes.py": "71aa436509010da79fad4cb2f4c4eb7cd8adcef5060c6e8c7786569e1e54c5da",
+      "experiments/exp-004-native-continuation/PROTOCOL.md": "7d9dfc7d98341ee39214c6d095650d0fdf394ae5b096ca8636cd8c071ac9631c",
+      "systems/dbcad/CAD_DB/backend/app/ai_editor.py": "8591273fff9522d96a654212137dd6c7d55059a8087c97ffdde09b38b7dbb5d4",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic.py": "6bf1fa48c8b4e379c47599517795c905f26cb922956cdf1e7e16d999648340ea",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic_runner.py": "40c6f2e459233c6378542637afc75d9a52e82356172a1403b02f9db522d112ab",
+      "systems/dbcad/CAD_DB/backend/app/ai_agentic_mcp.py": "fe38a8241854157fb6c08a10429a847824b5b2535a4e1d3a229a7e79fdb8aa5f",
+      "systems/dbcad/CAD_DB/backend/app/ai_cad_facade.py": "aac9a2df62d08f8227e5ce8274833a609b3c63b53c67958facc04447343807bc",
+      "systems/dbcad/CAD_DB/backend/app/ai_messages.py": "a6c4e71bd83666be01cc6113d53114ef80147e8c1eb18671bce7db096e99d470",
+      "systems/dbcad/CAD_DB/backend/app/cad_contract.py": "c7382e86ad99c50a4c5de2b3996d3e1a44631f3558f4b699c74f70674eae6bb6",
+      "systems/dbcad/CAD_DB/backend/app/ai_budget.py": "de6928abc315f061c8d78e8a615f50e38a7fa5f2eca203f9259eb254156f2af1",
+      "systems/dbcad/CAD_DB/backend/app/ai_render_views.py": "535e02c0f73cb45889c50f2fbd9b0713514296008d4f493ffc6965037fccb244",
+      "systems/dbcad/CAD_DB/backend/app/worker_pool.py": "cd73b9d2916202a3d3c3e89b14ba489645ed2ffa36f93670d8b0052cc13eb1c4",
+      "systems/dbcad/CAD_DB/backend/app/worker_client.py": "85f2506a31aa151c6a2048ce04614cb7deeab874d552f857ca227842cb9d9f9c",
+      "systems/dbcad/CAD_DB/backend/uv.lock": "112f6ca1c630321d4bbe52d983aa2ffd826b3415d4aa081e30e9f15d30b0144b"
+    },
+    "evidence_json_files": 1272,
+    "evidence_index_sha256": "2d0884c78ed7e7064009f7f372649cf61f6ec47776a78fd9df784cf44c081ca4"
+  }
+]

@@ -18,6 +18,8 @@ Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/b
 
 Issue #30 修复说明：网页下一阶段通过 `parent_job_id` 显式继承已终结任务；`mode=inspect` 是禁止写操作的只读阶段，完成状态为 completed、不发布空版本。运行中也保存检查点，中断检查点仅供审阅并拒绝自动重放。`SharedBudget` 在既有授权账本原位保留费用与未知预留，默认/自定义模型和视觉工具探针共同受总上限约束，provider 另有跨模型累计子上限；VLM 资格要求真实图片答案通过工具返回。连续编辑研究入口：[EXP-004](../../experiments/exp-004-native-continuation/README.md)。
 
+后续交互修复：无工具输出保留模型公开文本，`no_tool_call` 暂停仅在用户填写回答/补充要求后续作，不自动重试或应用；`render_views(views=['overview'])` 可查看当前完整模型，普通视图仍保留初始世界相机。EXP-004 首轮完整分支最终几何 48/48 正确，预览违规与错误报告另记，未证实旧记忆误用；副模型预算截断，详见实验结果，不等同于长期研究假设已验证。
+
 ## 运行链路（v3 服务端权威）
 
 `浏览器（React + three.js 薄客户端）→ FastAPI 网关 → ACIS worker（C++，每项目一进程，命令串行队列即版本链，ADR-2）`。

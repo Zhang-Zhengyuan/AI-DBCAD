@@ -183,6 +183,30 @@ def test_resume_cannot_switch_ledgers_and_keeps_only_one_running_task(harness, m
     asyncio.run(exercise())
 
 
+def test_clarification_pause_requires_human_answer_and_keeps_original_question(harness, monkeypatch):
+    _, _, config, make_job = harness
+    question = "出水口直径需要多少毫米？"
+    job = make_job(status="paused", pause_reason="no_tool_call",
+                   messages=[{"role": "assistant", "content": question}])
+    before = copy.deepcopy(job.messages)
+    assert job.public()["can_resume"]
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(ai.resume(job, "  "))
+    assert error.value.status_code == 422
+    assert job.messages == before and config["budget"].summary()["calls"] == 0
+    seen = []
+    async def run(current, runtime):
+        seen.extend(current.messages)
+        current.status = "completed"
+    monkeypatch.setattr(ai, "run", run)
+    async def exercise():
+        await ai.resume(job, "直径 12 mm")
+        await job.task
+    asyncio.run(exercise())
+    assert seen[0]["content"] == question and "直径 12 mm" in seen[-1]["content"]
+    assert job.id in ai.jobs and job.calls == 0
+
+
 def test_budget_pause_and_paused_cancel_never_publish(harness, monkeypatch):
     project, _, config, make_job = harness
     requests = provider(monkeypatch, lambda n: ("inspect", {}))

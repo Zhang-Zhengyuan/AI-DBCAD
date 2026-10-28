@@ -168,6 +168,7 @@ export function AIPanel() {
   };
   const running = job?.status === "running";
   const paused = job?.status === "paused";
+  const needsReply = paused && job.pause_reason === "no_tool_call";
   const stale = !!job && !!project && project.head_version !== job.base_version;
   return <section className="ai-panel" aria-label="AI CAD 编辑">
     <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
@@ -266,11 +267,12 @@ export function AIPanel() {
       <p>累计 {job.calls} 次模型调用 · 约 ¥{job.estimated_cny.toFixed(3)}。继续沿用原任务和累计费用，不会从头生成。</p>
       {stale && <p role="alert">项目版本已改变，请基于最新模型重新发起任务；旧预览不能直接继续。</p>}
       <form onSubmit={e => { e.preventDefault(); void resume(String(new FormData(e.currentTarget).get("instruction") ?? "")); }}>
-      <label htmlFor="ai-continuation">续作补充要求（可选）</label>
+      <label htmlFor="ai-continuation">{needsReply ? "回答或补充要求（必填）" : "续作补充要求（可选）"}</label>
       <textarea id="ai-continuation" name="instruction" value={continuation} onChange={e => setContinuation(e.target.value)} rows={3}
-        placeholder="例如：保留主体，接着完成把手和出水口。" disabled={busy || stale || job.can_resume === false} maxLength={6000} />
+        placeholder={needsReply ? "请回答模型的问题，或纠正其说明后继续。" : "例如：保留主体，接着完成把手和出水口。"}
+        required={needsReply} disabled={busy || stale || job.can_resume === false} maxLength={6000} />
       <div className="ai-actions">
-        <button type="submit" className="primary" disabled={busy || stale || job.can_resume === false || !status?.enabled}>继续生成</button>
+        <button type="submit" className="primary" disabled={busy || stale || job.can_resume === false || !status?.enabled || (needsReply && !continuation.trim())}>{needsReply ? "回答并继续" : "继续生成"}</button>
         <button type="button" disabled={busy} onClick={() => void cancel()}>放弃预览</button>
         {!preview && job.scene && <button type="button" onClick={() => useViewer.getState().setAIPreview(job.scene)}>查看中间模型</button>}
       </div>
