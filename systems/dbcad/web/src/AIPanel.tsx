@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type AIJob, type AIStatus, type AIProvider, type ProviderModel } from "./api";
 import { useViewer } from "./store";
 
@@ -16,20 +16,41 @@ export function AIPanel() {
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [activePid, setActivePid] = useState(() => localStorage.getItem("resumacad.pid") || "default");
   const [models, setModels] = useState<ProviderModel[] | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState("");
+  const [modelRefresh, setModelRefresh] = useState(0);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState("");
   const [modelSel, setModelSel] = useState(() => localStorage.getItem("resumacad.model") || "");
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [draft, setDraft] = useState({ label: "", base_url: "", api_key: "", limit: "100" });
   const [price, setPrice] = useState({ input: "", output: "" });
   const [images, setImages] = useState<string[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const settingsRef = useRef<HTMLDetailsElement>(null);
   const [continueConversation, setContinueConversation] = useState(true);
   const [inspectOnly, setInspectOnly] = useState(false);
-  useEffect(() => { void api.aiStatus().then(setStatus).catch(() => setStatus(null)); }, []);
-  useEffect(() => { void api.aiProviders().then(d => setProviders(d.providers)).catch(() => {}); }, []);
   useEffect(() => {
+    let alive = true;
+    void api.aiProviders().then(d => { if (alive) setProviders(d.providers); })
+      .catch(e => { if (alive) setError(`读取接口配置失败：${String(e)}`); });
+    return () => { alive = false; };
+  }, [modelRefresh]);
+  useEffect(() => {
+    let alive = true;
     setModels(null);
-    void api.aiModels(activePid).then(d => setModels(d.models)).catch(e => setError(String(e)));
+    setModelsLoading(true); setModelsError("");
+    void api.aiModels(activePid).then(d => { if (alive) setModels(d.models); })
+      .catch(e => { if (alive) setModelsError(String(e)); })
+      .finally(() => { if (alive) setModelsLoading(false); });
     localStorage.setItem("resumacad.pid", activePid);
-  }, [activePid]);
+    return () => { alive = false; };
+  }, [activePid, modelRefresh]);
+  useEffect(() => {
+    const refresh = () => setModelRefresh(value => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
   useEffect(() => { if (modelSel) localStorage.setItem("resumacad.model", modelSel); else localStorage.removeItem("resumacad.model"); }, [modelSel]);
   useEffect(() => {
     setJob(null); setError(""); setContinuation(""); setRestoring(false); setContinueConversation(true);
@@ -59,13 +80,13 @@ export function AIPanel() {
         setJob(fresh);
         if ((fresh.status === "ready" || fresh.status === "paused") && fresh.scene && useViewer.getState().activeProject?.id === fresh.project_id)
           useViewer.getState().setAIPreview(fresh.scene);
-        if (fresh.status !== "running") void api.aiStatus().then(setStatus);
+        if (fresh.status !== "running") setModelRefresh(value => value + 1);
       }).catch(e => { if (alive) setError(String(e)); });
     }, 1500);
     return () => { alive = false; clearInterval(timer); };
   }, [job?.id, job?.status]);
   const start = async () => {
-    if (!project) return;
+    if (!project || startBlockReason) { setError(startBlockReason || "请先选择项目。"); return; }
     setBusy(true); setError("");
     try {
       const fresh = await api.aiStart(project.id, instruction, project.head_version, selected, {
@@ -112,19 +133,27 @@ export function AIPanel() {
   const selectedModel = models?.find(m => m.id === modelSel) ?? null;
   const hasPrice = !!selectedModel?.pricing?.input_cny_per_million &&
     !!selectedModel?.pricing?.output_cny_per_million && !!selectedModel?.pricing?.context_tokens;
-  const isDefaultModel = activePid === "default" && modelSel === (providers.find(p => p.id === "default")?.default_model ?? status?.model);
+  const isDefaultModel = activePid === "default" && !!modelSel && modelSel === activeProvider?.default_model;
   const modelEligible = modelSel ? (selectedModel?.vlm === true && hasPrice) || isDefaultModel : activePid === "default";
   useEffect(() => {
-    if (modelEligible) void api.aiStatus(activePid, modelSel || undefined).then(setStatus).catch(() => {});
-  }, [activePid, modelSel, modelEligible]);
+    let alive = true;
+    setStatusLoading(true); setStatusError("");
+    void api.aiStatus(modelEligible ? activePid : undefined, modelEligible ? modelSel || undefined : undefined)
+      .then(value => { if (alive) setStatus(value); })
+      .catch(e => { if (alive) { setStatus(null); setStatusError(String(e)); } })
+      .finally(() => { if (alive) setStatusLoading(false); });
+    return () => { alive = false; };
+  }, [activePid, modelSel, modelEligible, modelRefresh]);
   useEffect(() => {
     // A remembered model that no longer exists for this provider would keep the
     // start button dead with no visible reason; recover explicitly, not silently.
     if (models && modelSel && !selectedModel && !isDefaultModel) {
       setModelSel("");
-      setError("之前选择的模型已不在该接口的模型列表中，已切回本机默认模型。");
+      setError(activePid === "default"
+        ? "之前选择的模型已不在该接口的模型列表中，已切回本机默认模型。"
+        : "之前选择的模型已不在该接口的模型列表中，已清除失效选择；请重新选择模型或切回本机默认。");
     }
-  }, [models, modelSel]);
+  }, [models, modelSel, isDefaultModel, activePid]);
   const saveProvider = async () => {
     setSettingsBusy(true); setError("");
     try {
@@ -143,7 +172,7 @@ export function AIPanel() {
     setSettingsBusy(true); setError("");
     try {
       await api.aiProbe(activePid, model);
-      setModels((await api.aiModels(activePid)).models);
+      setModelRefresh(value => value + 1);
     } catch (e) { setError(String(e)); } finally { setSettingsBusy(false); }
   };
   const savePrice = async () => {
@@ -153,7 +182,7 @@ export function AIPanel() {
       await api.aiModelPricing(activePid, modelSel, {
         input_cny_per_million: Number(price.input), output_cny_per_million: Number(price.output),
       });
-      setModels((await api.aiModels(activePid)).models);
+      setModelRefresh(value => value + 1);
     } catch (e) { setError(String(e)); } finally { setSettingsBusy(false); }
   };
   const readAsDataURL = (file: File) => new Promise<string>((resolve, reject) => {
@@ -170,14 +199,37 @@ export function AIPanel() {
     for (const file of picked) if (file.size > 2_500_000) setError(`${file.name} 超过 2.5MB，已跳过`);
     const readable = picked.filter(f => f.size <= 2_500_000);
     if (readable.length) {
-      const urls = await Promise.all(readable.map(readAsDataURL));
-      setImages(prev => [...prev, ...urls].slice(0, 3));
+      setImagesLoading(true);
+      try {
+        const urls = await Promise.all(readable.map(readAsDataURL));
+        setImages(prev => [...prev, ...urls].slice(0, 3));
+      } catch (e) { setError(String(e)); }
+      finally { setImagesLoading(false); }
     }
   };
   const running = job?.status === "running";
   const paused = job?.status === "paused";
   const needsReply = paused && job.pause_reason === "no_tool_call";
   const stale = !!job && !!project && project.head_version !== job.base_version;
+  const modelBlockReason = modelEligible ? null : !modelSel ? "请先在接口与模型中选择模型。"
+    : modelsLoading ? "正在读取所选模型的信息，请稍候。"
+    : modelsError ? `读取模型状态失败，请刷新模型状态：${modelsError}`
+    : !selectedModel ? "所选模型已不可用，请重新选择模型。"
+    : !hasPrice ? "所选模型尚未配置单价，请先保存单价，再检测 VLM。"
+    : "所选模型尚未通过 VLM 检测，请在接口与模型中完成检测。";
+  const startBlockReason = !project ? "请先在左侧选择或创建项目。"
+    : restoring ? "正在恢复上次任务，请稍候。"
+    : running ? "AI 正在处理当前任务，请等待结果或停止任务。"
+    : job?.status === "ready" ? "已有预览等待处理，请先应用到项目或放弃预览。"
+    : paused ? "当前任务已暂停，请使用下方的继续或放弃预览。"
+    : busy ? "正在处理当前操作，请稍候。"
+    : imagesLoading ? "正在读取参考图片，请稍候。"
+    : settingsBusy ? "正在保存或检测模型，请稍候。"
+    : modelBlockReason
+      ?? (statusLoading ? "正在检查 AI 服务，请稍候。"
+        : statusError ? `读取 AI 服务状态失败：${statusError}`
+        : !status?.enabled ? "当前 AI 服务未就绪，请检查接口配置或刷新模型状态。"
+        : instruction.trim().length < 2 ? "请输入至少两个字符的建模要求。" : null);
   return <section className="ai-panel" aria-label="AI CAD 编辑">
     <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
     <p className="ai-model">
@@ -185,7 +237,7 @@ export function AIPanel() {
         ? `${status.framework_label ? status.framework_label + " · " : ""}${modelSel ? `${modelSel}（已选）` : status.model}`
         : "AI 尚未配置"}
     </p>
-    <details className="ai-settings">
+    <details className="ai-settings" ref={settingsRef}>
       <summary>接口与模型{modelSel ? `：${modelSel}` : "：跟随本机默认"}</summary>
       <div className="ai-settings-body">
         <label>Provider
@@ -265,11 +317,18 @@ export function AIPanel() {
       )}
     </div>
     <div className="ai-actions">
-      {!modelEligible && <p role="alert" className="ai-error">所选模型尚未「VLM 检测通过 + 已配置单价」，暂不能开始。请展开“接口与模型”完成检测与单价，或把模型切回（本机默认）。</p>}
-      <button className="primary" title={modelEligible ? undefined : "模型未就绪：需 VLM 检测通过且已填单价，或选择本机默认模型"} disabled={!project || !status?.enabled || !modelEligible || instruction.trim().length < 2 || running || busy || restoring || job?.status === "ready" || paused}
+      <button className="primary" title={startBlockReason || undefined} aria-describedby={startBlockReason ? "ai-start-block" : undefined} disabled={!!startBlockReason}
         onClick={() => void start()}>{running ? "AI 正在编辑…" : "生成预览"}</button>
       {running && <button disabled={busy || job.cancel_requested} onClick={() => void cancel()}>停止</button>}
     </div>
+    {startBlockReason && <p id="ai-start-block" role="status" className="ai-hint">{startBlockReason}</p>}
+    {!running && !busy && <div className="ai-actions">
+      <button type="button" disabled={modelsLoading || settingsBusy} onClick={() => setModelRefresh(value => value + 1)}>刷新模型状态</button>
+      {modelBlockReason && <>
+        <button type="button" onClick={() => { if (settingsRef.current) settingsRef.current.open = true; }}>打开接口与模型</button>
+        <button type="button" onClick={() => { setActivePid("default"); setModelSel(""); }}>使用本机默认模型</button>
+      </>}
+    </div>}
     {paused && <div className="ai-preview-note">
       <strong>{preview ? "正在查看未完成预览 · 已暂停" : "未完成预览已暂停"}</strong>
       <p>{job.summary}</p>
