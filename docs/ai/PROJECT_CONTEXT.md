@@ -22,6 +22,8 @@ Issue #30 修复说明：网页下一阶段通过 `parent_job_id` 显式继承�
 
 Issue #32：AI 面板统一显示生成按钮的禁用原因；模型资格可手动/窗口聚焦刷新并保留文字与图片，旧接口或旧模型的延迟响应不能覆盖当前选择。带图提交、模型资格刷新和请求竞态的浏览器回归见 `systems/dbcad/web/e2e/ai-readiness.spec.ts`。构建当前工作树不等于部署到日常服务，实际运行目录与命令见 [MACOS.md](../MACOS.md#ai-面板与前端更新)。
 
+Issue #34：日常服务可设置 `enforce_budget=false` 取消总额、provider 子限额与任务金额暂停，原账本/未知预留持续保留；状态 API 返回 `budget.enforced=false`、`limit_cny=null`，前端显示“不设金额上限”。默认仍限额，研究入口未显式关闭时保持原授权预算；不取消分段续作、版本锁或未知调用禁止自动重放。
+
 ## 运行链路（v3 服务端权威）
 
 `浏览器（React + three.js 薄客户端）→ FastAPI 网关 → ACIS worker（C++，每项目一进程，命令串行队列即版本链，ADR-2）`。

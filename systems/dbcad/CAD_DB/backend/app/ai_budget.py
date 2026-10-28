@@ -46,11 +46,14 @@ class Budget:
     prevents concurrent runs from sharing the same remaining money twice.
     """
 
-    def __init__(self, path, limit, pricing):
+    def __init__(self, path, limit, pricing, *, enforce=True):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.limit = float(limit)
         self.pricing = pricing
+        if not isinstance(enforce, bool):
+            raise ValueError("Budget enforcement must be a boolean")
+        self.enforce = enforce
         if not math.isfinite(self.limit) or self.limit <= 0:
             raise ValueError("Budget must be finite and positive")
         for key in (
@@ -92,7 +95,7 @@ class Budget:
 
         def reserve(data):
             used = sum(c["charged_or_reserved_cny"] for c in data["calls"])
-            if used + cost > self.limit:
+            if self.enforce and used + cost > self.limit:
                 raise BudgetExceeded(
                     f"Next call reserves CNY {cost:.4f}; only {self.limit - used:.4f} remains"
                 )
@@ -138,7 +141,8 @@ class Budget:
             )
             return cost > call["reservation_cny"]
 
-        if self.update(settle):
+        exceeded = self.update(settle)
+        if exceeded and self.enforce:
             raise BudgetExceeded(
                 "Provider usage exceeded the reserved context/output; stopped"
             )
@@ -162,7 +166,8 @@ class Budget:
                 "charged_or_reserved_cny": sum(
                     c["charged_or_reserved_cny"] for c in d["calls"]
                 ),
-                "limit_cny": d["limit_cny"],
+                "limit_cny": d["limit_cny"] if self.enforce else None,
+                "enforced": self.enforce,
             }
         )
 
@@ -175,8 +180,8 @@ class SharedBudget(Budget):
     All admission and settlement still use the same cross-process file lock.
     """
 
-    def __init__(self, path, limit, pricing, *, scope="default", scope_limit=None):
-        super().__init__(path, limit, pricing)
+    def __init__(self, path, limit, pricing, *, scope="default", scope_limit=None, enforce=True):
+        super().__init__(path, limit, pricing, enforce=enforce)
         self.scope = str(scope)
         self.scope_limit = None if scope_limit is None else float(scope_limit)
         if self.scope_limit is not None and (not math.isfinite(self.scope_limit) or self.scope_limit <= 0):
@@ -217,9 +222,9 @@ class SharedBudget(Budget):
             used = sum(c["charged_or_reserved_cny"] for c in data["calls"])
             scoped = sum(c["charged_or_reserved_cny"] for c in data["calls"]
                          if c.get("scope", "default") == self.scope)
-            if used + cost > self.limit:
+            if self.enforce and used + cost > self.limit:
                 raise BudgetExceeded(f"Next call reserves CNY {cost:.4f}; only {self.limit-used:.4f} remains globally")
-            if self.scope_limit is not None and scoped + cost > self.scope_limit:
+            if self.enforce and self.scope_limit is not None and scoped + cost > self.scope_limit:
                 raise BudgetExceeded("Provider cumulative budget is exhausted across its models")
             index = len(data["calls"])
             data["calls"].append({"label": label, "started": time.time(), "status": "reserved",
@@ -232,7 +237,7 @@ class SharedBudget(Budget):
 
     def summary(self):
         result = super().summary()
-        result.update(scope=self.scope, scope_limit_cny=self.scope_limit)
+        result.update(scope=self.scope, scope_limit_cny=self.scope_limit if self.enforce else None)
         result["scope_charged_or_reserved_cny"] = self.update(lambda d: sum(
             c["charged_or_reserved_cny"] for c in d["calls"]
             if c.get("scope", "default") == self.scope))

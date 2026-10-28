@@ -126,3 +126,43 @@ def test_probe_classifier_routes_provider_errors():
     assert classify(422, "Invalid parameter: max_tokens") == "server"
     assert classify(401, "bad key") == "auth"
     assert classify(500, "upstream boom") == "server"
+
+
+@pytest.mark.parametrize("custom", [False, True])
+def test_unlimited_policy_follows_selected_model_and_provider(provider_file, custom):
+    from app import ai_editor as editor
+    from app.ai_budget import SharedBudget
+    config = _config(provider_file.parent)
+    config["enforce_budget"] = False
+    config["budget"] = SharedBudget(config["budget"].path, 300, config["pricing"], enforce=False)
+    provider_id = store.DEFAULT_ID
+    if custom:
+        provider_id = store.upsert_provider({"base_url": "https://unit.example/v1",
+                                            "api_key": "test-key-only", "budget_limit_cny": .001})["id"]
+    store.update_model(provider_id, "large-vlm", vlm=True,
+                       pricing={"input_cny_per_million": 2000, "output_cny_per_million": 2000})
+    runtime = editor.resolve_runtime_config(config, provider_id, "large-vlm")
+    runtime["budget"].reserve("large-vlm", 8192, "larger-than-old-total-and-provider-caps")
+    assert runtime["budget"].summary()["charged_or_reserved_cny"] > 300
+    assert runtime["budget"].summary()["limit_cny"] is None
+
+
+@pytest.mark.parametrize("value", ["false", 0, None])
+def test_budget_policy_requires_explicit_boolean(value):
+    from app.ai_editor import budget_enforced
+    with pytest.raises(ValueError, match="boolean"):
+        budget_enforced({"enforce_budget": value})
+
+
+def test_configuration_loads_unlimited_policy_without_changing_ledger(provider_file):
+    from app import ai_editor as editor
+    credentials = provider_file.parent / "credentials.txt"
+    credentials.write_text("CAD_API_KEY=test-only-not-a-real-key\n")
+    config = _config(provider_file.parent)
+    config.pop("budget")
+    config.update(credentials_file=str(credentials), ledger=str(provider_file.parent / "ledger.json"),
+                  limit_cny=100, enforce_budget=False)
+    (provider_file.parent / "ai.json").write_text(json.dumps(config))
+    loaded = editor.configuration()
+    assert loaded["budget"].summary()["enforced"] is False
+    assert json.loads(loaded["budget"].path.read_text())["limit_cny"] == 100

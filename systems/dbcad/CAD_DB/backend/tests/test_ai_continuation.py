@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from app import ai_editor as ai, main
-from app.ai_budget import Budget
+from app.ai_budget import Budget, SharedBudget
 from app.component_store import ComponentStore, get_component_store, set_component_store
 from app.config import settings
 from app.v1_store import SceneComponent, get_v1_store, initialize_v1_store, shutdown_v1_store
@@ -107,6 +107,54 @@ def test_three_segments_exceed_40_calls_without_resetting_progress_or_cost(harne
     monkeypatch.setattr(ai, "write_projections", lambda *args: None)
     assert ai.apply(job, "human")["version"] == 2
     assert len(get_v1_store().latest(project.id).components) == 46
+
+
+def test_unlimited_native_job_resumes_past_all_money_caps(harness, monkeypatch):
+    _, original, config, make_job = harness
+    config.update(enforce_budget=False, max_calls=1, job_soft_limit_cny=.0001)
+    config["budget"] = SharedBudget(config["budget"].path, .0001, config["pricing"],
+                                     scope_limit=.0001, enforce=False)
+    monkeypatch.setattr(config["budget"], "wait_for_slot", lambda: None)
+    requests = provider(monkeypatch, lambda n: ("run_command", {"action": "component.create", "params": {"kind": "cube", "width": 1}})
+                        if n == 1 else ("finish", {"summary": "done"}))
+    async def native(*args):
+        return {"added": [{"sat_bytes": get_component_store().put("sat", b"new-preview"),
+                           "glb_bytes": original.hash_glb, "kind": "cube"}]}
+    monkeypatch.setattr(ai, "native_command", native)
+    job = make_job()
+    async def exercise():
+        await ai.run(job, config)
+        assert job.status == "paused" and job.pause_reason == "round_limit"
+        assert job.cost > config["job_soft_limit_cny"]
+        await ai.resume(job)
+        await job.task
+        assert job.status == "ready" and job.calls == 2
+    asyncio.run(exercise())
+    assert len(requests) == 2
+    assert job.cost == pytest.approx(config["budget"].summary()["estimated_cny"])
+
+
+def test_unlimited_official_call_passes_old_task_cap_and_records_usage(harness, monkeypatch):
+    _, _, config, make_job = harness
+    config.update(enforce_budget=False, job_soft_limit_cny=.0001)
+    config["budget"] = SharedBudget(config["budget"].path, .0001, config["pricing"], enforce=False)
+    monkeypatch.setattr(config["budget"], "wait_for_slot", lambda: None)
+    requests = provider(monkeypatch, lambda n: ("finish", {"summary": "done"}))
+    job = make_job(cost=5)
+    asyncio.run(ai.official_model(job, config, [{"role": "user", "content": "continue"}], []))
+    assert len(requests) == 1 and job.cost > 5
+    assert config["budget"].summary()["calls"] == 1
+
+
+def test_unlimited_resume_still_rejects_uncertain_previous_request(harness):
+    _, _, config, make_job = harness
+    config["enforce_budget"] = False
+    job = make_job(status="paused", pause_reason="budget_limit",
+                   messages=[{"role": "user", "content": "saved"}])
+    config["budget"].reserve("fake", 2048, "native-ai/" + job.id)
+    with pytest.raises(HTTPException, match="尚未确认"):
+        asyncio.run(ai.resume(job))
+    assert config["budget"].summary()["calls"] == 1
 
 
 def test_paused_checkpoint_restores_messages_geometry_history_and_cost(harness, monkeypatch):

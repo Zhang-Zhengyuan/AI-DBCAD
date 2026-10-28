@@ -57,6 +57,8 @@ research/harness_study/run.sh observation judge
 
 `CAD_DB_AI_CONFIG` 指向一个私有 JSON。字段为 `base_url`、`credentials_file`、`ledger`、`limit_cny`、`pricing`、`render_python`，可选 `max_calls`（每执行段默认 20、最多 40）、`job_soft_limit_cny`（单任务累计软限，默认 4）、`trace_dir`。凭据文件仍使用 `CAD_API_KEY=...`；API 必须 HTTPS。本机启动器检测 `.local/macos/ai.json` 后自动设置路径。没有这个文件时 AI 关闭，基础 CAD 功能不受影响。
 
+`enforce_budget` 默认为 `true`，兼容有明确金额授权的既有研究配置。日常服务可明确设为 `false`：总额、provider 子上限、单任务软限和超预留结算不再因金额中止，但继续使用原账本原位记录已知费用与未知预留；无需也不得清空旧费用。状态 API 用 `budget.enforced=false` 与 `limit_cny=null` 表达不限金额，账本中原 `limit_cny` 不改写。未确认调用仍不自动重放，分段轮次、版本检查和提供方错误处理保持有效。独立实验配置未显式关闭时继续执行原预算。
+
 `render_python` 指向上述含 VTK 的研究环境；API 进程无需安装 VTK/OpenAI SDK，也不导入 ACIS。AI 的独立 worker session 只生成候选 SAT/GLB/图资产，用户应用时才检查捕获的 `base_version` 并发布一次版本。每段调用用尽后暂停，网页显示未完成的中间预览，可补充要求并点击“继续生成”；同一任务可以分多段超过累计 40 次调用，仍受原累计费用和全局账本限制。未完成预览不能应用。项目版本已被人工改变时，继续返回 409，不覆盖新模型。失败、停止或放弃不提交候选；已有组件资产不被覆盖。
 
 配置 trace_dir 时，私有完整检查点保存在 trace_dir/checkpoints/（权限 600），已暂停/已完成任务在服务重启后可恢复；未配置时仅支持当前进程内续作。运行中的任务遇到服务停止仍取消。旧公开失败轨迹只读保留，不能冒充完整续作检查点。已应用版本持久保存。当前不支持跨服务器/多 uvicorn worker 共享任务；部署此功能使用单 API worker。

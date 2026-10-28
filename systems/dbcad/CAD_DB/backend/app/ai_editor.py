@@ -38,6 +38,14 @@ NATIVE_TIMEOUT_SECONDS = 60
 FRAMEWORKS = {"native", "agenticcadedit-acis"}
 
 
+def budget_enforced(config):
+    """Old research configs remain capped; daily use can explicitly opt out."""
+    value = config.get("enforce_budget", True)
+    if not isinstance(value, bool):
+        raise ValueError("enforce_budget must be a boolean")
+    return value
+
+
 def output_limit(config):
     default = 8192 if config.get("framework") == "agenticcadedit-acis" else 2048
     limit = config.get("max_tokens", default)
@@ -63,7 +71,8 @@ def configuration():
     if not credentials.get("CAD_API_KEY"):
         raise HTTPException(503, "AI provider key is missing")
     config["api_key"] = credentials["CAD_API_KEY"]
-    config["budget"] = SharedBudget(config["ledger"], config["limit_cny"], config["pricing"])
+    config["budget"] = SharedBudget(config["ledger"], config["limit_cny"], config["pricing"],
+                                    enforce=budget_enforced(config))
     return config
 
 
@@ -196,7 +205,7 @@ def make_room():
 
 
 def resolve_runtime_config(config, provider_id, model, *, require_vlm=True):
-    """Select pinned prices while preserving the authorization's total limit."""
+    """Select pinned prices while preserving the ledger and spending policy."""
     from . import ai_provider_store as store
 
     if not provider_id and not model:
@@ -227,7 +236,8 @@ def resolve_runtime_config(config, provider_id, model, *, require_vlm=True):
     runtime = dict(config)
     runtime.update(base_url=base_url, api_key=api_key, pricing=pricing,
                    budget=SharedBudget(config["budget"].path, config["budget"].limit,
-                                       pricing, scope=provider_id, scope_limit=limit))
+                                       pricing, scope=provider_id, scope_limit=limit,
+                                       enforce=budget_enforced(config)))
     return runtime
 
 
@@ -324,12 +334,12 @@ async def resume(job, instruction=""):
         raise HTTPException(409, "上次调用费用或结果尚未确认，请先核对账本，不能自动重试")
     job.cost = max(job.cost, sum(c["charged_or_reserved_cny"] for c in entries))
     job.calls = max(job.calls, len(entries))
-    if job.cost >= float(config.get("job_soft_limit_cny", 4)):
+    if budget_enforced(config) and job.cost >= float(config.get("job_soft_limit_cny", 4)):
         raise HTTPException(402, "本任务累计费用上限已到；继续不会重置费用额度")
     budget = config["budget"].summary()
     pricing = config["pricing"]
     reservation = (pricing["context_tokens"] * pricing["input_cny_per_million"] + output_limit(config) * pricing["output_cny_per_million"]) / 1e6
-    if budget["charged_or_reserved_cny"] + reservation > budget["limit_cny"]:
+    if budget_enforced(config) and budget["charged_or_reserved_cny"] + reservation > budget["limit_cny"]:
         raise HTTPException(402, "预算账本可用额度不足，本次未发起模型调用；请先核对预算")
     if not job.messages:
         raise HTTPException(409, "缺少完整对话检查点，不能伪装为原任务续作")
@@ -588,7 +598,7 @@ async def run(job, config):
                     job.status = "cancelled"
                     job.summary = "已停止，正式模型未修改"
                     return
-                if job.cost >= float(config.get("job_soft_limit_cny", 4)):
+                if budget_enforced(config) and job.cost >= float(config.get("job_soft_limit_cny", 4)):
                     raise BudgetExceeded("本任务累计费用上限已到")
                 index = config["budget"].reserve(
                     config["pricing"]["model"], 2048, "native-ai/" + job.id
@@ -857,7 +867,7 @@ async def official_model(job, config, messages, tool_specs):
     """One accounted provider request; the parent owns credentials and budget."""
     if job.cancelled:
         raise asyncio.CancelledError("Native AI job cancelled")
-    if job.cost >= float(config.get("job_soft_limit_cny", 4)):
+    if budget_enforced(config) and job.cost >= float(config.get("job_soft_limit_cny", 4)):
         raise BudgetExceeded("本任务累计费用上限已到")
     index = config["budget"].reserve(
         config["pricing"]["model"], output_limit(config), "native-ai/" + job.id
