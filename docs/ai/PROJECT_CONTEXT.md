@@ -24,6 +24,8 @@ Issue #32：AI 面板统一显示生成按钮的禁用原因；模型资格可�
 
 Issue #34：日常服务可设置 `enforce_budget=false` 取消总额、provider 子限额与任务金额暂停，原账本/未知预留持续保留；状态 API 返回 `budget.enforced=false`、`limit_cny=null`，前端显示“不设金额上限”。默认仍限额，研究入口未显式关闭时保持原授权预算；不取消分段续作、版本锁或未知调用禁止自动重放。
 
+Issue #36：管理台组件投影图节点显示上限可选（120..5000，sessionStorage 记忆）且请求上限=绘制上限，取消隐藏的 120/240 硬截断；节点按 entity_key 内容键去重、`reference_count` 单列组件内局部引用，`total_entities`（内容节点）与 `total_entity_references`（HAS_ENTITY 引用）分口径，截断判断 `matched > returned`（恰好达到上限不算截断，top-level 根优先保留）；TOPOLOGY 按 `component` 归属过滤且端点限定可见集，关系另有独立安全上限与截断标志。回归见 `backend/tests/test_neo4j_webui_graph.py`（非集成）与 `test_neo4j_webui_integration.py`（真库）。
+
 ## 运行链路（v3 服务端权威）
 
 `浏览器（React + three.js 薄客户端）→ FastAPI 网关 → ACIS worker（C++，每项目一进程，命令串行队列即版本链，ADR-2）`。
