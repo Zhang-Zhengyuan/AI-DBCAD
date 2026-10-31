@@ -740,7 +740,12 @@
   .muted { color: var(--text-dim); }
   .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
   .neo4j-graph-wrap { margin-top: 18px; background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 12px; overflow: auto; }
-  .neo4j-graph-wrap svg { display: block; min-width: 760px; }
+  .neo4j-graph-wrap svg { display: block; width: 100%; height: 500px; touch-action: none; cursor: grab; }
+  .neo4j-graph-wrap svg:active { cursor: grabbing; }
+  .graph-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .graph-controls label { display: flex; align-items: center; gap: 10px; }
+  .graph-controls select { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; }
+  [data-graph-content][aria-busy="true"] { opacity: .55; }
   .neo4j-graph-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0 0; font-size: var(--fz-xs); color: var(--text-dim); }
   .neo4j-graph-detail { margin-top: 10px; color: var(--text-dim); font-size: var(--fz-sm); word-break: break-word; }
   .neo4j-graph-node { cursor: pointer; }
