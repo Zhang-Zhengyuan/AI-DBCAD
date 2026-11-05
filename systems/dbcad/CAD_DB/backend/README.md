@@ -1,4 +1,4 @@
-# DBCAD FastAPI 服务
+# AI-DBCAD FastAPI 服务
 
 公共入口 `uvicorn app.main:app`。v3 服务端权威网关：接收浏览器命令，转发 ACIS worker 执行，管理版本链与资产。Web 客户端在 `/web`，管理界面在 `/` 或 `/webui`，接口文档在 `/docs`。
 
@@ -34,7 +34,7 @@ uv run --frozen uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 worker（`x64/<Configuration>/dbcad_worker.exe`）由 FastAPI 的 GeometryPool 按项目自动拉起，一个项目一个进程；路径由环境变量配置。全栈部署使用 `systems/dbcad/CAD_DB/deploy/start_dbcad_fullstack.cmd`。
 
-macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_DB_WORKER_EXE` 覆盖。Mac 原生环境使用根目录 `DBCAD.command` 启动，详见 [macOS 指南](../../../../docs/MACOS.md)。
+macOS 默认 worker 为 `build/macos/Release/dbcad_worker`，同样支持 `CAD_DB_WORKER_EXE` 覆盖。Mac 原生环境使用根目录 `AI-DBCAD.command` 启动，详见 [macOS 指南](../../../../docs/MACOS.md)。
 
 ## 协议（/api/v1）
 

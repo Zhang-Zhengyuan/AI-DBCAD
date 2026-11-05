@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
   const upstream = http.request({ host: '127.0.0.1', port: backend, path: req.url, method: req.method, headers: headers(req) }, response => {
     res.writeHead(response.statusCode, response.headers); response.pipe(res);
   });
-  upstream.on('error', () => { if (!res.headersSent) res.writeHead(502); res.end('DBCAD backend unavailable'); });
+  upstream.on('error', () => { if (!res.headersSent) res.writeHead(502); res.end('AI-DBCAD backend unavailable'); });
   req.on('aborted', () => upstream.destroy());
   req.pipe(upstream);
 });
@@ -25,4 +25,4 @@ server.on('upgrade', (req, socket, head) => {
   socket.on('error', () => upstream.destroy());
   socket.on('close', () => upstream.destroy());
 });
-server.listen(settings.ports.web, '127.0.0.1', () => console.log(`DBCAD: http://127.0.0.1:${settings.ports.web}/web/`));
+server.listen(settings.ports.web, '127.0.0.1', () => console.log(`AI-DBCAD: http://127.0.0.1:${settings.ports.web}/web/`));

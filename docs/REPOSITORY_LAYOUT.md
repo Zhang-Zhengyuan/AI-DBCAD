@@ -1,6 +1,6 @@
 # 代码、实验和本地产物的组织规则
 
-核对日期：2026-10-26。本规则适用于 ResumaCAD；研究状态以根 README 和各实验定义为准。
+核对日期：2026-10-26。本规则适用于 AI-DBCAD；研究状态以根 README 和各实验定义为准。
 
 ## 组织原则与依据
 
@@ -11,7 +11,7 @@
 ## 当前目录契约
 
 ```text
-systems/dbcad/             DBCAD 底座源码；底座的回归测试随模块放置
+systems/dbcad/             AI-DBCAD 底座源码；底座的回归测试随模块放置
   CAD_DB/                 worker、kernel、FastAPI 后端与部署入口
   web/                    React 浏览器客户端及 e2e
 research/                 固定上游复现适配、评测工具和既有 harness
@@ -71,6 +71,6 @@ git diff --cached --name-status
 
 ## 路径兼容与回滚
 
-DBCAD 源码从根 `CAD_DB/`、`web/` 移到 `systems/dbcad/`；根 `DBCAD.command`、`scripts/macos.py`、`scripts/build*` 和 `CAD_DB.sln` 仍为入口。SDK、`build/`、`.local/macos/`、Windows `x64/` 以及研究目录中的环境/数据位置保持原有约定。HTTP/WS、worker 命令和数据格式不变。
+AI-DBCAD 源码从根 `CAD_DB/`、`web/` 移到 `systems/dbcad/`；根 `AI-DBCAD.command`、`scripts/macos.py`、`scripts/build*` 和 `CAD_DB.sln` 为入口。SDK、`build/`、`.local/macos/`、Windows `x64/` 以及研究目录中的环境/数据位置保持原有约定。HTTP/WS、worker 命令和数据格式不变。
 
 源码工作目录和直接导入路径需要更新；其他工作树需同步后运行新的后端 `uv sync --frozen --extra dev --reinstall`（重建带旧绝对路径的脚本入口）。已运行的服务可能还载入旧路径代码，本任务不停止正在使用的服务；下一次正常启动使用新路径。回滚结构提交即可恢复源码和入口；本地忽略产物与 SDK 不删除、不恢复数据库、不重置账本。

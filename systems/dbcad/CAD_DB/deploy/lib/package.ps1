@@ -1,7 +1,7 @@
 # Package helpers for the fullstack launcher.
 function Write-PackageReadme([string]$PackageRoot, [string]$LatestExePath) {
     $readme = @"
-DBCAD fullstack package
+AI-DBCAD fullstack package
 
 Start all services and the client:
   .\start_dbcad_fullstack.cmd

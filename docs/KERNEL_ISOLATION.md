@@ -45,7 +45,7 @@ HTTP → FastAPI → JsonGraphVersion / 不可变组件 → Neo4j
 
 | 文件/模块 | 当前职责 |
 |---|---|
-| `CAD_DB/kernel/model_types.h` | DBCAD 自有句柄、操作枚举、点、平移、颜色、包围盒 |
+| `CAD_DB/kernel/model_types.h` | AI-DBCAD 自有句柄、操作枚举、点、平移、颜色、包围盒 |
 | `CAD_DB/kernel/document_model.h` | UUID、逻辑索引、依赖、构造参数、显示设置及几何句柄 |
 | `CAD_DB/kernel/geometry_kernel.h` | 建模、形状类别、平移、网格、原生存取、组件图与诊断接口 |
 | `CAD_DB/kernel/acis_kernel.cpp`、`acis_primitives.inc` | 当前接口实现与工厂；原生对象只在适配器内部解析 |

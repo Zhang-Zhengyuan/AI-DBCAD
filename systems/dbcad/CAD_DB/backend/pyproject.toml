@@ -1,7 +1,7 @@
 [project]
-name = "cad-db-backend"
+name = "ai-dbcad-backend"
 version = "0.1.0"
-description = "CAD DB FastAPI backend service"
+description = "AI-DBCAD FastAPI backend service"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi==0.116.1",

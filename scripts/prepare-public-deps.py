@@ -26,7 +26,7 @@ def install():
     for filename, (url, digest) in ARCHIVES.items():
         archive = WORK / filename
         if not archive.exists():
-            request = urllib.request.Request(url, headers={'User-Agent': 'DBCAD-dependency-installer'})
+            request = urllib.request.Request(url, headers={'User-Agent': 'AI-DBCAD-dependency-installer'})
             with urllib.request.urlopen(request, timeout=120) as response, archive.open('wb') as output:
                 shutil.copyfileobj(response, output)
         with archive.open('rb') as stream:

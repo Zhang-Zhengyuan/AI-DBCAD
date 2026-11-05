@@ -8,7 +8,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[5]  # systems/dbcad/CAD_DB/backend
 
 
 class Settings(BaseSettings):
-    app_name: str = "CAD DB Store API"
+    app_name: str = "AI-DBCAD API"
     storage_backend: str = Field(default="neo4j")
     neo4j_uri: str = Field(default="")
     neo4j_user: str = Field(default="neo4j")

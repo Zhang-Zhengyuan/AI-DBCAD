@@ -1,4 +1,4 @@
-# DBCAD：macOS 原生运行
+# AI-DBCAD：macOS 原生运行
 
 适用 Apple Silicon Mac、macOS 13.3+。本次实测环境为 macOS 26.6.2、ARM64、Apple Clang 21、Node 22、Python 3.12；ACIS/InterOp 均为 2026.1.0.1。Windows 的 MSBuild 和 PowerShell 入口继续保留。
 
@@ -18,7 +18,7 @@
 
 ```bash
 python3 scripts/macos.py setup --team-kit /path/to/DBCAD-Team-Kit-20261019.zip
-./DBCAD.command
+./AI-DBCAD.command
 ```
 
 setup 只从 TeamKit 提取 `_deps/vendor/nlohmann/json.hpp`，原生构建使用 Mac SDK。它安装锁定的 Python 3.12 开发环境、编译 Release worker/网格测试、执行自检，再安装和构建前端。已存在 JSON 头时可省略 `--team-kit`。其他 SDK 位置可通过 `ACIS_ROOT`（含 include、macos_m64 的那层）和 `INTEROP_ROOT` 指定。
@@ -27,7 +27,7 @@ setup 只从 TeamKit 提取 `_deps/vendor/nlohmann/json.hpp`，原生构建使�
 
 ## 日常启停
 
-双击根目录 `DBCAD.command`，或执行：
+双击根目录 `AI-DBCAD.command`，或执行：
 
 ```bash
 python3 scripts/macos.py start --open
@@ -43,7 +43,7 @@ python3 scripts/macos.py stop --database
 
 启动器核对 PID、启动时间、命令与进程组归属后才停止服务。进程登记为空或已过期时，还会检查配置端口的监听者；只有命令符合本仓库后端/网关、工作目录确为当前 `.local/macos` 且进程组身份可验证时才恢复管理，兼容目录整理前的 `CAD_DB/backend` 及仍指向同一工作区的旧路径别名。status 也会识别这些漏登服务。
 
-其他程序占用端口时，启动器显示服务、端口和 PID，不终止对方。不要用按端口批量 kill 绕过归属检查。重复双击或同时启停会得到“Another DBCAD start/stop is in progress”，等待前一次操作结束后再执行。进程登记原子保存；后端或网关启动/就绪失败时回收本次已启动的服务并保留日志，避免下次再次撞端口。
+其他程序占用端口时，启动器显示服务、端口和 PID，不终止对方。不要用按端口批量 kill 绕过归属检查。重复双击或同时启停会得到“Another AI-DBCAD start/stop is in progress”，等待前一次操作结束后再执行。进程登记原子保存；后端或网关启动/就绪失败时回收本次已启动的服务并保留日志，避免下次再次撞端口。
 
 启动器不操作其他项目的 Neo4j 容器，也不删除数据。工作区开始写入数据后若要移动目录，应先完全停止；不要直接复制已配置的 `.local` 给别人。
 
@@ -60,13 +60,13 @@ npm --prefix systems/dbcad/web run build
 
 “生成预览”按钮下方会显示阻塞原因：例如未选项目、模型未填价格/未通过视觉工具检测、旧预览等待应用、任务暂停或状态正在读取。已经在其他窗口完成检测时，使用“刷新模型状态”重新读取资格，不需要重新填写文字、附加图片或重复付费检测；窗口重新获得焦点时也会刷新。图片附加本身不代替选择项目，未完成预览仍需继续、应用或放弃。
 
-日常 AI-CAD 可在实际运行目录的私有 `.local/macos/ai.json` 中设置 `"enforce_budget": false`，取消总金额、provider 子额度和单任务累计费用的拦截。保留原有 `ledger`、`limit_cny`、`pricing` 和全部费用记录；不要删除或重置账本。页面显示“累计费用及未知费用预留 · 不设金额上限”；`GET /api/v1/ai/status` 的 `budget.enforced=false`、`budget.limit_cny=null` 表示此策略已生效。后端代码更新需要重新运行 `./DBCAD.command`，完成后刷新网页；仅重新构建前端不能改变后端费用策略。
+日常 AI-CAD 可在实际运行目录的私有 `.local/macos/ai.json` 中设置 `"enforce_budget": false`，取消总金额、provider 子额度和单任务累计费用的拦截。保留原有 `ledger`、`limit_cny`、`pricing` 和全部费用记录；不要删除或重置账本。页面显示“累计费用及未知费用预留 · 不设金额上限”；`GET /api/v1/ai/status` 的 `budget.enforced=false`、`budget.limit_cny=null` 表示此策略已生效。后端代码更新需要重新运行 `./AI-DBCAD.command`，完成后刷新网页；仅重新构建前端不能改变后端费用策略。
 
 省略该字段或设置 `true` 继续执行原限额，供有固定授权额度的研究实验使用。不限金额也会保留分段暂停/继续、主动停止、版本冲突检查和未确认调用禁止自动重放；提供方余额、网络或模型错误仍会中止任务。取消金额限制不等于保证任意建模请求成功。
 
 ## 工作区更名与兼容路径
 
-科研项目现名 **ResumaCAD**。本机目录更名时，先停止已确认属于旧工作区的后端、网关及数据库，再将原目录移动到新名称，并在旧位置保留指向新目录的符号链接。旧路径仍被虚拟环境、构建缓存、容器 bind mount 或研究配置引用时，不要移除该链接。
+科研项目现名 **AI-DBCAD**。本机目录更名时，先停止已确认属于旧工作区的后端、网关及数据库，再将原目录移动到新名称，并在旧位置保留指向新目录的符号链接。旧路径仍被虚拟环境、构建缓存、容器 bind mount 或研究配置引用时，不要移除该链接。
 
 启动器仅在配置或容器标签中的绝对路径仍实际指向当前同一目录时接受别名。复制到另一个 checkout、缺失容器标签和失效路径仍被拒绝。容器名称、workspace 标签、端口、密码和既有数据沿用原身份；品牌更名不会新建一套数据库。
 
@@ -108,7 +108,7 @@ npx playwright test
 - 后端非集成基线 42 项通过；提供真实 Neo4j 和 STEP 样本后，完整后端测试 51 项通过，零跳过。
 - 前端构建通过；Playwright 的两项真实浏览器测试通过，覆盖鉴权、建模、SAT 导入导出、两会话同步、渲染、测量与版本切换。
 - 在独立持久化实例创建立方体、球和圆锥，连续撤销/重做 `3 → 2 → 1 → 2 → 3`，SAT/GLB/STL 导出、实体 face 查询均通过。
-- 完全停止后端、网关和 Neo4j 再启动，两个验收项目及场景清单保持一致；精简 Finder 环境下的 `DBCAD.command` 启动通过。启动器四项回归覆盖端口占用、快速重启、私密配置及进程身份匹配。
+- 完全停止后端、网关和 Neo4j 再启动，两个验收项目及场景清单保持一致；精简 Finder 环境下的 `AI-DBCAD.command` 启动通过。启动器四项回归覆盖端口占用、快速重启、私密配置及进程身份匹配。
 - 用 Mac InterOp 从 ACIS 立方体生成 STEP，再经 worker 和 HTTP 导入，得到一个组件、12 个三角形；中文输出路径可用。此项验证了简单实体转换，尚未覆盖大型 STEP 装配体和完整 ABC 语料。
 
 SDK、许可、凭据、数据库、模型和编译产物全部留在忽略目录；Git 只包含适配代码、脚本和说明。

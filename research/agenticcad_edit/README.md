@@ -1,6 +1,6 @@
 # AgenticCADedit 本机复现
 
-工作目录为 ResumaCAD 下的 `research/agenticcad_edit`。这里直接运行作者的工具与两套 agent 循环；本地代码负责固定环境、限制 API 预算、保留实验记录与独立评价。论文和代码导读见 [PAPER_AND_CODE.md](PAPER_AND_CODE.md)，实际结果见 [VALIDATION.md](VALIDATION.md)。
+工作目录为 AI-DBCAD 下的 `research/agenticcad_edit`。这里直接运行作者的工具与两套 agent 循环；本地代码负责固定环境、限制 API 预算、保留实验记录与独立评价。论文和代码导读见 [PAPER_AND_CODE.md](PAPER_AND_CODE.md)，实际结果见 [VALIDATION.md](VALIDATION.md)。
 
 ## 固定版本与入口
 
@@ -62,4 +62,4 @@
 
 CD 使用原始 10,000 点、双向 Euclidean 距离求和，不对齐、不归一化；固定采样 seed 42。原始 voxel IoU 是表面体素索引重合，不是填充实体体积 IoU。DINO 是固定权重的全部 patch/token 特征展平后的余弦值；此处对所有方法和参考统一重新渲染，属于共同渲染诊断，不能冒充作者缓存特征的逐项复算。没有新增付费评分或人类 Acceptance。
 
-官方源码检出、数据引用、凭据、模型输出及缓存都在忽略的 `.local` 中；只有复现脚本、依赖锁和说明进入 ResumaCAD Git。
+官方源码检出、数据引用、凭据、模型输出及缓存都在忽略的 `.local` 中；只有复现脚本、依赖锁和说明进入 AI-DBCAD Git。

@@ -35,7 +35,7 @@ research/agenticcad_edit/.local/venv/bin/python -m unittest discover -s research
 python3 scripts/experiments.py check
 ```
 
-实测分别通过 4 项、6 项及登记/哈希检查。未改 DBCAD/ACIS/数据库/浏览器协议，未重跑这些模块的全栈验证。
+实测分别通过 4 项、6 项及登记/哈希检查。未改 AI-DBCAD/ACIS/数据库/浏览器协议，未重跑这些模块的全栈验证。
 
 已有原始运行的再分析不再调用 API：
 

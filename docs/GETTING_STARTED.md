@@ -5,8 +5,8 @@ v3 架构：浏览器是唯一客户端（React + three.js），几何计算在�
 ## 1. 获取源码与工具
 
 ```powershell
-git clone https://github.com/Zhang-Zhengyuan/ResumaCAD.git
-cd ResumaCAD
+git clone https://github.com/Zhang-Zhengyuan/AI-DBCAD.git
+cd AI-DBCAD
 ```
 
 安装 Visual Studio 2022 的 C++ 桌面开发工作负载与 Windows SDK、Python 3.11+、uv、Node.js 20.19+ 或 22.12+、Docker Desktop（Linux 容器引擎）。无 Qt 依赖（P7 已移除 Qt 客户端）。

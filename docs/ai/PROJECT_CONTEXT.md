@@ -1,12 +1,12 @@
 # 项目上下文与按需导航
 
-核对日期：2026-10-26。科研项目现名 ResumaCAD，底座沿用 DBCAD v3。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
+核对日期：2026-10-26。项目与产品统一命名为 AI-DBCAD，沿用 v3 服务端权威架构。本文是定位索引，实际源码、锁文件、构建文件与当前 CI 是事实来源；历史设计稿描述的目标不等于已实现。模块路径或命令变化时同 PR 更新本索引。
 
-先按 [目录与收录规则](../REPOSITORY_LAYOUT.md) 判断本地/入库/远端范围。DBCAD 源码已集中到 `systems/dbcad/`；[实验索引](../../experiments/README.md) 关联稳定实验 ID、代码和结果，EXP-001 为旧单请求对照，EXP-002 已完成首轮 24 个受控恢复分支（非自然长期链）。开题写作和汇报导出默认仅本地，不自动创建 Issue 或 PR。
+先按 [目录与收录规则](../REPOSITORY_LAYOUT.md) 判断本地/入库/远端范围。AI-DBCAD 源码已集中到 `systems/dbcad/`；[实验索引](../../experiments/README.md) 关联稳定实验 ID、代码和结果，EXP-001 为旧单请求对照，EXP-002 已完成首轮 24 个受控恢复分支（非自然长期链）。开题写作和汇报导出默认仅本地，不自动创建 Issue 或 PR。
 
-AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 DBCAD 底座。
+AI-native CAD 研究与 Mac 接手入口：[MAC_HANDOFF.md](MAC_HANDOFF.md)。下文描述继承的 AI-DBCAD 底座。
 
-后续研究统一在本 ResumaCAD 仓库进行。维护者已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”，拟研究独立的持续编辑 benchmark 和证据维护方法，候选方法与真正持续链 benchmark 尚未实现或验证；EXP-002 的工具适配、独立真值与初步结果已落地，当前定位以[根 README](../../README.md) 为准。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
+后续研究统一在本 AI-DBCAD 仓库进行。维护者已选定“持续人机 CAD 编辑中的版本感知几何证据维护与可靠续作”，拟研究独立的持续编辑 benchmark 和证据维护方法，候选方法与真正持续链 benchmark 尚未实现或验证；EXP-002 的工具适配、独立真值与初步结果已落地，当前定位以[根 README](../../README.md) 为准。neuralCAD-Edit 的固定代码、完整数据、ARM64 环境和离线评测入口见 [research/neuralcad_edit/README.md](../../research/neuralcad_edit/README.md)，论文与代码导读见 [PAPER_AND_CODE.md](../../research/neuralcad_edit/PAPER_AND_CODE.md)。
 
 AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API 对照入口见 [research/agenticcad_edit/README.md](../../research/agenticcad_edit/README.md)，原实现局限和评分口径见其 [PAPER_AND_CODE.md](../../research/agenticcad_edit/PAPER_AND_CODE.md)。
 
@@ -14,7 +14,7 @@ AgenticCADedit 官方 MCP/完整脚本双 harness 的 Mac 复现与有预算 API
 
 AI-CAD-agent 底层框架（EXP-003 已选定）：官方 AgenticCADedit 循环（固定上游提交）经 `agenticcadedit-acis/1` 适配器运行在 ACIS 上——接入层 `app/ai_agentic.py`（桥接与提示）、`app/ai_agentic_runner.py`/`app/ai_agentic_mcp.py`（上游循环与 MCP 子进程）、`app/ai_cad_facade.py` + `app/cad_contract.py`（受限原生语言与命令/查询契约）、`app/ai_render_views.py`（固定相机多视图 + 真实选区高亮）；worker 侧新命令在 `CAD_DB/worker/agent_geometry.inc`。配置字段 `framework=agenticcadedit-acis` + `agentic_upstream` + `render_python`。用户交互层支持：网页填写自定义 provider（base_url+key，只存本机 0600 文件）、拉取模型列表并按“图片+工具”探针筛选可用 VLM（纯文本模型不可选）、填写单价后模型与探针共同受授权总账限制，provider 另有跨模型子上限、随指令上传图纸图片进入官方循环上下文（看图建模）；实现于 `app/ai_provider_store.py` 与 `app/api/v1/ai.py` 的 /ai/providers 端点组。选型证据与边界见 [experiments/exp-003-cad-agent-selection/DECISION.md](../../experiments/exp-003-cad-agent-selection/DECISION.md)。
 
-Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `DBCAD.command`。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
+Mac 原生环境与验收：[../MACOS.md](../MACOS.md)。构建入口 `scripts/build-macos.sh`，环境/进程入口 `scripts/macos.py`，用户启动入口 `AI-DBCAD.command`。名称与兼容约定见[根 README](../../README.md#名称与兼容)（Issue #38）。SDK、原生构建及服务状态分别在根目录提供的授权包、`build/macos/`、`.local/macos/`，均不入库。
 
 Issue #30 修复说明：网页下一阶段通过 `parent_job_id` 显式继承已终结任务；`mode=inspect` 是禁止写操作的只读阶段，完成状态为 completed、不发布空版本。运行中也保存检查点，中断检查点仅供审阅并拒绝自动重放。`SharedBudget` 在既有授权账本原位保留费用与未知预留，默认/自定义模型和视觉工具探针共同受总上限约束，provider 另有跨模型累计子上限；VLM 资格要求真实图片答案通过工具返回。连续编辑研究入口：[EXP-004](../../experiments/exp-004-native-continuation/README.md)。
 
