@@ -60,3 +60,5 @@ HTTP 鉴权头为 `X-API-Password`，WS 使用 password 查询参数。部署默
 原生 AI 预览/应用 API 在 `app/api/v1/ai.py`，配置与限制见 [研究运行说明](../../../../research/harness_study/README.md)。`GET /api/v1/ai/status` 查询可用性；`POST /projects/{id}/ai/jobs` 接收 instruction、必填 base_version（空项目为 null）、selected；任务查询/停止/应用位于 `/ai/jobs/{job_id}`、`/cancel`、`/apply`；`POST /ai/jobs/{job_id}/resume` 接收可选 `instruction`（最多 6000 字符），继续同一任务。这些入口使用同样的 API 鉴权。预览过程不发布版本，应用严格拒绝过期 base，成功后仍可使用既有 undo/redo。配置关闭与未准备研究渲染环境时基础 API 保持兼容。轮次额度按执行段计算（默认 20、单段最多 40），用完进入 `paused`，返回未完成 scene，可查看或继续但不可直接应用。继续保留 messages、manifest、history、projections 与累计调用/费用，重新校验项目 head、同项目/全局并发、模型和账本身份、未确认费用及可用预算；不会清零预算或自动重基。预算暂停需先核对额度，未知费用不会自动重试。
 
 配置 trace_dir 时，已暂停/已完成任务另以权限 600 的原子 JSON 检查点保存在 trace_dir/checkpoints/，服务重启后按项目范围恢复。完整模型对话仅在私有检查点，不通过 API 返回；无 trace_dir 时只在内存续作。旧失败 trace 可只读查看，缺少完整对话时不能续接。运行中的任务在服务停止时仍取消；不支持多 API 进程同时编排同一任务，当前部署使用单 worker。
+
+Linux 默认 worker 为 `build/linux/Release/dbcad_worker`；可通过 `CAD_DB_WORKER_EXE` 指向独立包启动入口，详见 [Linux 指南](../../../../docs/LINUX.md)。

@@ -66,3 +66,5 @@ AI-DBCAD 是服务端权威架构：C++ ACIS worker 执行几何计算，FastAPI
 ## 名称与兼容
 
 仓库、网页、管理台与启动入口统一为 **AI-DBCAD**（Issue #38）。内部 `systems/dbcad/`、`CAD_DB.sln`、`dbcad_worker`、`CAD_DB_*` / `DBCAD_*` 配置、协议 schema 和浏览器存储键保持兼容，避免影响已有模型、预算账本和登录/续作状态。历史报告与实验来源保留当时名称。Mac 本地目录改名时保留旧路径符号链接，以兼容虚拟环境、容器挂载与构建缓存。
+
+Linux worker 构建、独立运行包与网关接入见 [Linux 指南](docs/LINUX.md)（当前待 Linux SDK 真内核验收）。
