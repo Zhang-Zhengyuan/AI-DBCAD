@@ -40,7 +40,7 @@ def rpc(socket_path, operation, payload):
 def main(socket_path):
     from mcp.server.fastmcp import FastMCP, Image
 
-    server = FastMCP("resumacad-acis", json_response=True)
+    server = FastMCP("ai-dbcad-acis", json_response=True)
 
     def tool(name, **arguments):
         return rpc(socket_path, "tool", {"name": name, "arguments": arguments})

@@ -7,11 +7,11 @@
 ## 当前阶段（2026-10-27）
 
 - 原始 AgenticCADedit／IterCAD 固定版本及真实协议已审计。
-- **选型已定：官方 AgenticCADedit 循环经 `agenticcadedit-acis/1` 适配器接入 DBCAD/ACIS；IterCAD 不接入，保留为外部对照。** 结论、付费端到端证据（4 次运行 ¥0.6720/¥300，含真实 fillet/高亮/阶段链与独立几何审计）与诚实边界见 [DECISION.md](DECISION.md)。
+- **选型已定：官方 AgenticCADedit 循环经 `agenticcadedit-acis/1` 适配器接入 AI-DBCAD/ACIS；IterCAD 不接入，保留为外部对照。** 结论、付费端到端证据（4 次运行 ¥0.6720/¥300，含真实 fillet/高亮/阶段链与独立几何审计）与诚实边界见 [DECISION.md](DECISION.md)。
 - 实现 12 条两阶段任务链、官方循环 transport 接入、只读请求 loader、离线几何评分、追加式运行目录和分母保留。
 - **24 个参考阶段的实体构造及 STEP 往返离线验收通过**，记录在 `runs/offline-20261027-b/offline.json`；这不是模型实验结果。
 - `runs/offline-20261027-a/` 保留首轮扫掠管评分数值问题，不删除失败；随后修正体积容斥测量。
-- 本目录研究侧付费调用仍为 0（接入验证的费用记在 DBCAD 原生 AI 账本）；neuralCAD 192 请求对照未运行，模型/预算冻结后另行登记。
+- 本目录研究侧付费调用仍为 0（接入验证的费用记在 AI-DBCAD 原生 AI 账本）；neuralCAD 192 请求对照未运行，模型/预算冻结后另行登记。
 - 未执行 neuralCAD 全部 192 请求、未将本目录结果包装为完整论文复现。
 - 官方 IterCAD 权重只读取了公开元数据，未下载、未加载、未推理。本机研究环境不支持其架构，详见下方。
 

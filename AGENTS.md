@@ -1,4 +1,4 @@
-# ResumaCAD Agent 工作契约
+# AI-DBCAD Agent 工作契约
 
 适用于本仓库所有 coding agent。先读本文件，再读目标目录下的 AGENTS.md；模块规则补充根规则。日常沟通、Issue 和 PR 默认中文，代码标识符沿用现有风格。
 
@@ -23,7 +23,7 @@
 
 ## 已确认的架构边界
 
-- DBCAD 源码统一在 `systems/dbcad/`，包括 `systems/dbcad/CAD_DB/` 和 `systems/dbcad/web/`；实验定义与稳定 ID 在 `experiments/`，复现适配与既有 harness 在 `research/`。新增实验不得在根目录另起散落的脚本/结果文件夹，先读 `experiments/AGENTS.md`。
+- AI-DBCAD 源码统一在 `systems/dbcad/`，包括 `systems/dbcad/CAD_DB/` 和 `systems/dbcad/web/`；实验定义与稳定 ID 在 `experiments/`，复现适配与既有 harness 在 `research/`。新增实验不得在根目录另起散落的脚本/结果文件夹，先读 `experiments/AGENTS.md`。
 - 服务端权威（v3）：C++ ACIS worker（根 `CAD_DB.sln` 默认目标 `dbcad_worker.exe`）+ Python 3.11+ FastAPI 网关（`app.main:app`）+ Neo4j + 内容寻址资产库；浏览器（React + three.js）是唯一客户端。
 - ACIS 只存在于 worker 进程：许可初始化与 SDK 调用集中在 `systems/dbcad/CAD_DB/acis.cpp`、其 `worker/`、`kernel/`；网关与协议层不接触原生类型，不要把内核头文件引入 Python 侧或前端。
 - 几何真相 = SAT 资产（内容寻址 sha256，`hash_sat` 全局去重）；GLB 网格与实体图投影是派生索引（ADR-3）。不要重新引入"纯图复原几何"路径或 v2 json-delta 协议；WebSocket 只传版本事件与在场状态（edit_intent）。

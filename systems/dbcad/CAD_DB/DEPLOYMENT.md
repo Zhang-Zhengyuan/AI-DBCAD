@@ -1,4 +1,4 @@
-# DBCAD 一键部署和启动（v3）
+# AI-DBCAD 一键部署和启动（v3）
 
 v3 架构（V3_PLAN P7 起）：**浏览器是唯一客户端**。启动 Neo4j 与 FastAPI
 （`/api/v1` + `/web` 静态托管 Web 客户端 + `/webui` Neo4j 管理台），几何

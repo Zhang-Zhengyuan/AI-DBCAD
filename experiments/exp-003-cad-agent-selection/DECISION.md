@@ -4,13 +4,13 @@
 
 ## 决策
 
-**主框架：官方 AgenticCADedit 完整决策循环（固定提交 `c084034cdcf462025a60ee70c5ba94577428e5ca`），经 `agenticcadedit-acis/1` 适配器接入 DBCAD/ACIS，作为 ResumaCAD 长期人机协同实验的 AI-CAD-agent 底层。** IterCAD 不作为接入对象，保留为 CadQuery 侧外部对照（本目录基础设施就绪，本轮付费调用 0）。DeciCAD/PhysCAD 无公开代码，CADIR 为 OCCT SDK，均不满足接入条件。
+**主框架：官方 AgenticCADedit 完整决策循环（固定提交 `c084034cdcf462025a60ee70c5ba94577428e5ca`），经 `agenticcadedit-acis/1` 适配器接入 AI-DBCAD/ACIS，作为 AI-DBCAD 长期人机协同实验的 AI-CAD-agent 底层。** IterCAD 不作为接入对象，保留为 CadQuery 侧外部对照（本目录基础设施就绪，本轮付费调用 0）。DeciCAD/PhysCAD 无公开代码，CADIR 为 OCCT SDK，均不满足接入条件。
 
 ## 依据
 
 ### 1. IterCAD 结构性不匹配（源码审计，未运行其权重）
 
-- 公开编辑入口 `process_itercad_edit` 消费**原始 CadQuery 建模程序**；DBCAD 的场景是导入/编辑 B-Rep（不可变 SAT 资产 + 版本链），没有也不应要求 CadQuery 程序历史。
+- 公开编辑入口 `process_itercad_edit` 消费**原始 CadQuery 建模程序**；AI-DBCAD 的场景是导入/编辑 B-Rep（不可变 SAT 资产 + 版本链），没有也不应要求 CadQuery 程序历史。
 - 其价值集中在 SFT/RL 权重：公开权重 `KnowledgeXLab/IterCAD-RL` 为 Qwen3_5 架构、BF16 共 10,349,929,472 字节，训练环境要求 transformers 5.2.0（本机研究环境 4.57.1 实测 `AutoConfig` 不支持）；未下载、未加载、未推理。
 - 权重学习的是 CadQuery 代码语言；换成 ACIS 原生工具语言后权重作废，剩下的循环不优于现有适配器。
 
@@ -33,7 +33,7 @@
 
 - **v1**：trimesh 水密=True、euler=0（贯通孔拓扑）、bbox 精确 60×40×8、体积 18299.808 vs 解析 18295.221（0.0251% 曲面离散误差）。
 - **v2**：水密=True、bbox 不变、体积较 v1 降 6.786 mm³（r=0.5 双孔口圆角的解析量级，含离散噪声）；ACIS 精确面积 6475.398→6459.440；面数 7→9、边数 14→16（每条圆角边净增一边），与 fillet 拓扑一致。
-- **T3 案例**：指令"上表面中心加凸台"与中心孔几何矛盾；模型把 r=4 圆柱放进 r=6 孔内，形成不接触的双实体 BODY，validate() 通过且模型如实说明了这一状态。**valid ≠ 语义正确**——这是 ResumaCAD 课题要量化的验收问题，不是执行缺陷；该预览未应用。
+- **T3 案例**：指令"上表面中心加凸台"与中心孔几何矛盾；模型把 r=4 圆柱放进 r=6 孔内，形成不接触的双实体 BODY，validate() 通过且模型如实说明了这一状态。**valid ≠ 语义正确**——这是 AI-DBCAD 课题要量化的验收问题，不是执行缺陷；该预览未应用。
 
 ## 已验证的链路（组件级）
 
@@ -70,7 +70,7 @@
 
 **与"之前"（PR #11/#25 的 ~600 行原生适配器）的区别**：旧入口是自写 JSON 工具循环，8 个白名单动作（图元/变换/布尔/删除）、无面边查询、无高亮、无 fillet/sweep/extrude、无变量绑定与程序语言、自动 FitAll 三视图、2048 token。现入口运行上游官方循环，工具面为官方八工具 + 受限原生语言（覆盖官方演示节奏 inspect→定位→高亮→小步编辑→验证→finish），精确面/边分页查询、真实选区高亮、fillet/chamfer/extrude/revolve/sweep、distance/interference/validate、含变量绑定的 undo、跨段检查点、8192 token、阶段化连续对话。付费 T2 任务完整走了官方论文的节奏（list_edges→高亮渲染→fillet→validate→渲染→export→finish）。
 
-**有意不做/尚未做到的（与"完整 CadQuery harness"的差距）**：run_step 是受限语言子集而非全量 CadQuery Python API（模型生成代码不经 Python exec，命令经校验走服务端权威路径——这是 DBCAD 架构红线）；官方 OCP 渲染器换为 VTK（多视图+高亮语义等价，风格不同）；worker 已有 shell 命令尚未暴露给 AI；浏览器 UI 未在新框架下人工走查。表达面扩展按任务需要继续，不宣称已覆盖 ACIS 全部能力。
+**有意不做/尚未做到的（与"完整 CadQuery harness"的差距）**：run_step 是受限语言子集而非全量 CadQuery Python API（模型生成代码不经 Python exec，命令经校验走服务端权威路径——这是 AI-DBCAD 架构红线）；官方 OCP 渲染器换为 VTK（多视图+高亮语义等价，风格不同）；worker 已有 shell 命令尚未暴露给 AI；浏览器 UI 未在新框架下人工走查。表达面扩展按任务需要继续，不宣称已覆盖 ACIS 全部能力。
 
 ## 复现入口
 

@@ -124,7 +124,7 @@ class LauncherTests(unittest.TestCase):
         with self.workspace():
             with self.assertRaisesRegex(RuntimeError, "deliberate failure"):
                 with launcher.lifecycle_lock():
-                    with self.assertRaisesRegex(RuntimeError, "Another DBCAD start/stop"):
+                    with self.assertRaisesRegex(RuntimeError, "Another AI-DBCAD start/stop"):
                         with launcher.lifecycle_lock():
                             self.fail("Overlapping lifecycle operation acquired the lock")
                     raise RuntimeError("deliberate failure")

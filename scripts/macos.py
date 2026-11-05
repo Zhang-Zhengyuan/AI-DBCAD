@@ -65,7 +65,7 @@ def lifecycle_lock():
         try:
             fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise RuntimeError("Another DBCAD start/stop is in progress; wait for it to finish.") from None
+            raise RuntimeError("Another AI-DBCAD start/stop is in progress; wait for it to finish.") from None
         try:
             yield
         finally:
@@ -109,7 +109,7 @@ def config():
         ports[key] = free_port(preferred, ports.values())
     data = {
         "root": str(ROOT),
-        "container": "resumacad-" + hashlib.sha256(str(ROOT).encode()).hexdigest()[:10],
+        "container": "ai-dbcad-" + hashlib.sha256(str(ROOT).encode()).hexdigest()[:10],
         "image": IMAGE,
         "ports": ports,
         "api_password": secrets.token_urlsafe(32),
@@ -152,7 +152,7 @@ def setup(args):
     run(WORKER.parent / "mesh_tests")
     run("npm", "ci", cwd=DBCAD / "web")
     run("npm", "run", "build", cwd=DBCAD / "web")
-    print("macOS setup complete. Start with ./DBCAD.command")
+    print("macOS setup complete. Start with ./AI-DBCAD.command")
 
 
 def container_info(data):
@@ -295,7 +295,7 @@ def stop(args):
         data = config()
         if container_info(data):
             run("docker", "stop", data["container"], stdout=subprocess.DEVNULL)
-    print("DBCAD services stopped; saved models and database retained.")
+    print("AI-DBCAD services stopped; saved models and database retained.")
 
 
 def spawn(name, argv, data, records):
@@ -362,7 +362,7 @@ def start(args):
         stop_records(records)
         raise
     url = f"http://127.0.0.1:{data['ports']['web']}/web/"
-    print(f"ResumaCAD: {url}")
+    print(f"AI-DBCAD: {url}")
     print(f"Local logs and saved configuration: {LOCAL}")
     if args.open:
         run("open", url)
@@ -402,7 +402,7 @@ def main():
         else:
             args.func(args)
     except (RuntimeError, OSError, subprocess.CalledProcessError) as exc:
-        print(f"DBCAD: {exc}", file=sys.stderr)
+        print(f"AI-DBCAD: {exc}", file=sys.stderr)
         return 1
     return 0
 

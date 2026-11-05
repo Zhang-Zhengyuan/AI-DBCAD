@@ -1,6 +1,6 @@
 # 三 harness 研究与原生 AI 编辑
 
-所有操作从 ResumaCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。本实验已登记为 [EXP-001](../../experiments/exp-001-three-harness/README.md)。主报告为 [REPORT.md](REPORT.md)，精选文本指标在 `experiments/exp-001-three-harness/results/`；PDF、图片和重新生成的输出在本地忽略的 `output/`，不会随克隆分发；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。历史报告保留当时的 InferraCAD 名称，当前选题与实现状态以[根 README](../../README.md)为准。
+所有操作从 AI-DBCAD 根目录运行。本目录复用 `research/agenticcad_edit/.local/venv`，本机数据、模型输出、API 记录和账本在 `.local/`，不入库。本实验已登记为 [EXP-001](../../experiments/exp-001-three-harness/README.md)。主报告为 [REPORT.md](REPORT.md)，精选文本指标在 `experiments/exp-001-three-harness/results/`；PDF、图片和重新生成的输出在本地忽略的 `output/`，不会随克隆分发；研究问题和否证条件见 [RESEARCH_DIRECTIONS.md](RESEARCH_DIRECTIONS.md)。历史报告保留当时的 InferraCAD 名称，当前选题与实现状态以[根 README](../../README.md)为准。
 
 ## 环境与第三方代码
 
@@ -51,9 +51,9 @@ research/harness_study/run.sh observation judge
 
 12 个确定几何状态对 × 三种反馈方式，共 36 次盲判。自动 FitAll、固定世界相机、自动 FitAll+精确包围盒三个条件比较可观测性；不把这项判定实验算进三 harness 的 72 次编辑，也不声称它证明了端到端算法改进。注册、原始图片和 API 回应保存在 `.local/observation-probe`。
 
-## DBCAD 原生 AI 使用
+## AI-DBCAD 原生 AI 使用
 
-打开本机 DBCAD 网页，创建/打开项目，在右侧 AI CAD 输入文字，生成预览，再选择应用或放弃。支持立方体/球/柱/锥/环、平移、旋转、缩放、删除和布尔操作；当前没有原生倒角/圆角工具，也没有把全部 CadQuery MCP 工具移植进来。
+打开本机 AI-DBCAD 网页，创建/打开项目，在右侧 AI CAD 输入文字，生成预览，再选择应用或放弃。支持立方体/球/柱/锥/环、平移、旋转、缩放、删除和布尔操作；当前没有原生倒角/圆角工具，也没有把全部 CadQuery MCP 工具移植进来。
 
 `CAD_DB_AI_CONFIG` 指向一个私有 JSON。字段为 `base_url`、`credentials_file`、`ledger`、`limit_cny`、`pricing`、`render_python`，可选 `max_calls`（每执行段默认 20、最多 40）、`job_soft_limit_cny`（单任务累计软限，默认 4）、`trace_dir`。凭据文件仍使用 `CAD_API_KEY=...`；API 必须 HTTPS。本机启动器检测 `.local/macos/ai.json` 后自动设置路径。没有这个文件时 AI 关闭，基础 CAD 功能不受影响。
 

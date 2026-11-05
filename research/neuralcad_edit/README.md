@@ -1,6 +1,6 @@
 # neuralCAD-Edit 研究工作区
 
-后续工作统一在当前 ResumaCAD 仓库中开展。本目录用于独立研究复现，不修改正在运行的 DBCAD 产品链路。
+后续工作统一在当前 AI-DBCAD 仓库中开展。本目录用于独立研究复现，不修改正在运行的 AI-DBCAD 产品链路。
 
 建议先看 [论文与代码阅读指南](PAPER_AND_CODE.md)，再打开 [阅读 notebook](reading.ipynb)。当前阶段完成环境、数据和离线校验；模型实验等你研究后再开始。
 

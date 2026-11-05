@@ -197,7 +197,7 @@ Write-PidFile -Path $pidFile -Data ([ordered]@{
     started_at = (Get-Date).ToString("o")
 })
 
-Write-Host "[OK] DBCAD v3 fullstack is ready."
+Write-Host "[OK] AI-DBCAD v3 fullstack is ready."
 Write-Host "[INFO] Web client: $webUrl"
 Write-Host "[INFO] FastAPI health: $fastApiUrl/health"
 Write-Host "[INFO] Neo4j console: $fastApiUrl/webui"

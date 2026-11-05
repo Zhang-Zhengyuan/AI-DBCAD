@@ -239,7 +239,7 @@ export function AIPanel() {
         : !status?.enabled ? "当前 AI 服务未就绪，请检查接口配置或刷新模型状态。"
         : instruction.trim().length < 2 ? "请输入至少两个字符的建模要求。" : null);
   return <section className="ai-panel" aria-label="AI CAD 编辑">
-    <div className="ai-heading"><h2>AI CAD</h2><span>ResumaCAD</span></div>
+    <div className="ai-heading"><h2>AI CAD</h2><span>AI-DBCAD</span></div>
     <p className="ai-model">
       {status?.enabled
         ? `${status.framework_label ? status.framework_label + " · " : ""}${modelSel ? `${modelSel}（已选）` : status.model}`
