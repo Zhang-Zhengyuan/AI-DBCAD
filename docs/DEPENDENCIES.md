@@ -12,6 +12,19 @@
 
 默认布局：
 
+默认布局（`_deps/` 是全平台唯一的第三方依赖根目录，整个目录不入 Git；Windows/macOS/Linux 统一使用）：
+
+```text
+_deps/
+  acis/          # ACIS 头文件与链接接口：Windows 为 TeamKit 实体目录（见下），macOS 为指向 macos/ 的软链
+  interop/       # Spatial InterOp 同上（macOS 软链 → macos/2026.1.0.1_iop_mac_m64）
+  vendor/        # 平台无关源码依赖（nlohmann/json.hpp）
+  macos/         # macOS 原始 SDK 发行包（2026.1.0.1_acis_all_mac_m64/、2026.1.0.1_iop_mac_m64/）
+  linux/         # Linux ACIS/InterOp SDK（仅维护者构建 worker 使用，见 LINUX.md）
+```
+
+Windows 的 `acis/` 目录内容（安装包布局）：
+
 ```text
 _deps/
   acis/include/                 # 官方 2026.1.0.1 头文件（与安装包 ACIS_2026.1.0.1/include 一致）
@@ -21,6 +34,10 @@ _deps/
   acis/bin/SPAAcisDsd.dll       # Debug 运行库
   glfw/lib/glfw3_64.lib
 ```
+
+macOS 构建默认读取 `_deps/macos/` 下的原始发行包（`scripts/build-macos.sh`，可用 `ACIS_ROOT` / `INTEROP_ROOT` 覆盖）；`_deps/acis`、`_deps/interop` 软链只为兼容既有的 include 解析，不是必需。Linux 构建输入与目录见 [LINUX.md](LINUX.md)。
+
+只想运行、不编译 worker 的机器不需要任何 SDK：向维护者索取对应平台的预编译 worker 运行包（Linux 已提供，自带全部动态库与资源），按 [LINUX.md](LINUX.md) 的“网关/整套系统接入”一节设置 `CAD_DB_WORKER_EXE` 即可。运行包属授权分发材料，不入库、不作公共 Release。
 
 > 2026-10-18（架构 v2 清理）：`glaze`、`mgclient`、`openssl`、`postgresql`（libpq）不再被客户端链接——它们只服务于已删除的 Bolt 直连栈与 PostgreSQL 实验。`_deps` 目录中如仍存在这些子目录可删除以释放空间。
 

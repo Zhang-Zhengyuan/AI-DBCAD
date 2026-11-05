@@ -8,8 +8,8 @@
 
 ```text
 仓库根目录/
-  2026.1.0.1_acis_all_mac_m64/2026.1.0.1_acis_mac_m64/
-  2026.1.0.1_iop_mac_m64/
+  _deps/macos/2026.1.0.1_acis_all_mac_m64/2026.1.0.1_acis_mac_m64/
+  _deps/macos/2026.1.0.1_iop_mac_m64/
   spatial_license.h
   scripts/macos.py
 ```
