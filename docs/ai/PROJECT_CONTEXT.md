@@ -26,7 +26,7 @@ Issue #34：日常服务可设置 `enforce_budget=false` 取消总额、provider
 
 Issue #36：管理台组件投影图节点显示上限可选（120..5000，sessionStorage 记忆）且请求上限=绘制上限，取消隐藏的 120/240 硬截断；节点按 entity_key 内容键去重、`reference_count` 单列组件内局部引用，`total_entities`（内容节点）与 `total_entity_references`（HAS_ENTITY 引用）分口径，截断判断 `matched > returned`（恰好达到上限不算截断，top-level 根优先保留）；TOPOLOGY 按 `component` 归属过滤且端点限定可见集，关系另有独立安全上限与截断标志。回归见 `backend/tests/test_neo4j_webui_graph.py`（非集成）与 `test_neo4j_webui_integration.py`（真库）。
 
-Linux worker 构建/运行包：[`scripts/linux-worker.py`](../../scripts/linux-worker.py)，依赖与待 SDK 验收边界见 [Linux 指南](../LINUX.md)。目标 Ubuntu x86_64；不替代完整网关/数据库部署。
+Linux worker 构建/运行包：[`scripts/linux-worker.py`](../../scripts/linux-worker.py)，依赖与平台验收边界见 [Linux 指南](../LINUX.md)。目标 Ubuntu x86_64；不替代完整网关/数据库部署。
 
 ## 运行链路（v3 服务端权威）
 
