@@ -5,8 +5,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${1:-Release}"
 case "$CONFIG" in Release) OPT=(-O2) ;; Debug) OPT=(-O0 -g) ;; *) echo 'Usage: build-macos.sh [Release|Debug]' >&2; exit 2 ;; esac
 [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]] || { echo 'Requires an Apple Silicon Mac.' >&2; exit 1; }
-ACIS="${ACIS_ROOT:-$ROOT/2026.1.0.1_acis_all_mac_m64/2026.1.0.1_acis_mac_m64}"
-IOP="${INTEROP_ROOT:-$ROOT/2026.1.0.1_iop_mac_m64}"
+ACIS="${ACIS_ROOT:-$ROOT/_deps/macos/2026.1.0.1_acis_all_mac_m64/2026.1.0.1_acis_mac_m64}"
+IOP="${INTEROP_ROOT:-$ROOT/_deps/macos/2026.1.0.1_iop_mac_m64}"
 OUT="$ROOT/build/macos/$CONFIG"
 SDK_INCLUDE="$ROOT/build/macos/sdk"
 ACIS_BIN="$ACIS/macos_m64/code/bin"
